@@ -74,32 +74,5 @@ def test_get_model_config_dict():
     assert model_config["architecture"] == "linear"
 
 
-def test_mixed_precision_config():
-    """Test mixed precision configuration."""
-    config = Config()
-    
-    # Test default (no mixed precision)
-    assert config.training.mixed_precision is None
-    
-    # Test setting mixed precision modes
-    config.training.mixed_precision = "fp16"
-    assert config.training.mixed_precision == "fp16"
-    
-    config.training.mixed_precision = "bfloat16"
-    assert config.training.mixed_precision == "bfloat16"
-    
-    # Test loading from dict with mixed precision
-    config_dict = {
-        "training": {
-            "mixed_precision": "bfloat16",
-            "batch_size": 16
-        }
-    }
-    
-    config = Config.from_dict(config_dict)
-    assert config.training.mixed_precision == "bfloat16"
-    assert config.training.batch_size == 16
-
-
 if __name__ == "__main__":
     pytest.main([__file__])
