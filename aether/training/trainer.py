@@ -74,7 +74,7 @@ class Trainer:
         else:
             raise ValueError(f"Unsupported optimizer: {self.config.training.optimizer}")
         
-        return nnx.Optimizer(self.model, optimizer_fn)
+        return nnx.Optimizer(self.model, optimizer_fn, wrt=nnx.Param)
     
     def _create_data_iterators(self):
         """Create data iterators."""

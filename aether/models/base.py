@@ -9,7 +9,7 @@ except ImportError:
     nnx = None
 
 
-class BaseModel(abc.ABC):
+class BaseModel(nnx.Module, abc.ABC):
     """Abstract base class for all Aether models."""
     
     @abc.abstractmethod
