@@ -32,6 +32,8 @@ class TrainingConfig:
     val_set_size: int = 20000
     checkpoint_interval: int = 10000
     optimizer: str = "novograd"
+    # Mixed precision settings
+    mixed_precision: Optional[str] = None  # None, "fp16", or "bfloat16"
 
 
 @dataclass

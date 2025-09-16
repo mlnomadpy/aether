@@ -1,0 +1,36 @@
+{
+  "model": {
+    "name": "minigpt-yat-large",
+    "architecture": "yat",
+    "maxlen": 2048,
+    "vocab_size": 50257,
+    "embed_dim": 1024,
+    "num_heads": 16,
+    "feed_forward_dim": 4096,
+    "num_transformer_blocks": 24,
+    "dropout_rate": 0.1
+  },
+  "training": {
+    "batch_size": 16,
+    "learning_rate": 0.0015,
+    "max_tokens_to_process": 2000000000,
+    "eval_interval": 5000,
+    "eval_steps": 500,
+    "val_set_size": 10000,
+    "checkpoint_interval": 10000,
+    "optimizer": "adamw",
+    "mixed_precision": "bfloat16"
+  },
+  "data": {
+    "dataset_name": "HuggingFaceFW/fineweb",
+    "split": "train",
+    "streaming": true,
+    "tokenizer_name": "gpt2"
+  },
+  "logging": {
+    "wandb_project": "aether-yat-large-training",
+    "checkpoint_dir": "./checkpoints/yat_large",
+    "log_level": "INFO",
+    "log_file": null
+  }
+}

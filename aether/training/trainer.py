@@ -10,7 +10,7 @@ import wandb
 import orbax.checkpoint as orbax
 from typing import Dict, Any, Optional
 
-from .steps import train_step, eval_step
+from .steps import train_step, eval_step, apply_mixed_precision
 from ..config import Config
 from ..registry import create_model
 from ..data import create_data_iterators, prepare_batch
@@ -36,6 +36,14 @@ class Trainer:
         # Initialize model
         self.rngs = nnx.Rngs(0)
         self.model = self._create_model()
+        
+        # Apply mixed precision to model if specified
+        if self.config.training.mixed_precision:
+            # Extract model parameters, apply mixed precision, and merge back
+            graph_def, params, other_state = nnx.split(self.model, nnx.Param, ...)
+            params = apply_mixed_precision(params, self.config.training.mixed_precision)
+            self.model = nnx.merge(graph_def, params, other_state)
+            print(f"Applied {self.config.training.mixed_precision} mixed precision to model")
         
         # Initialize optimizer
         self.optimizer = self._create_optimizer()
