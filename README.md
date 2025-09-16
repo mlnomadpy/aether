@@ -121,7 +121,8 @@ Aether uses a hierarchical configuration system with support for JSON and YAML f
     "eval_steps": 1000,
     "val_set_size": 20000,
     "checkpoint_interval": 10000,
-    "optimizer": "novograd"
+    "optimizer": "novograd",
+    "mixed_precision": "bfloat16"
   },
   "data": {
     "dataset_name": "HuggingFaceFW/fineweb",
@@ -139,8 +140,36 @@ Aether uses a hierarchical configuration system with support for JSON and YAML f
 
 ### Pre-configured Examples
 
+**Basic Models:**
 - `configs/linear_config.json`: Standard linear transformer
 - `configs/yat_config.json`: YAT architecture transformer
+
+**Mixed Precision Training:**
+- `configs/linear_medium_fp16_config.json`: Linear model with fp16 precision
+- `configs/yat_medium_fp16_config.json`: YAT model with fp16 precision
+
+**Large Scale Models:**
+- `configs/linear_large_config.json`: Large linear model (1024 embed_dim, 24 blocks) with bfloat16
+- `configs/linear_xl_config.json`: Extra-large linear model (1536 embed_dim, 36 blocks) with bfloat16
+- `configs/yat_large_config.json`: Large YAT model (1024 embed_dim, 24 blocks) with bfloat16
+- `configs/yat_xl_config.json`: Extra-large YAT model (1536 embed_dim, 36 blocks) with bfloat16
+
+### Mixed Precision Training
+
+Aether supports mixed precision training with fp16 and bfloat16 to reduce memory usage and accelerate training:
+
+```json
+{
+  "training": {
+    "mixed_precision": "bfloat16"  // Options: null, "fp16", "bfloat16"
+  }
+}
+```
+
+**Benefits:**
+- **Memory Efficiency**: ~50% reduction in memory usage
+- **Speed**: Faster training on modern GPUs/TPUs
+- **Stability**: bfloat16 offers better numerical stability than fp16
 
 ## 🏗️ Architecture Overview
 
@@ -312,7 +341,7 @@ On a V100 GPU with the default configuration:
 1. **Batch Size**: Increase for better GPU utilization
 2. **Sequence Length**: Shorter sequences = faster training
 3. **Model Size**: Reduce layers/dimensions for faster iteration
-4. **Mixed Precision**: Enable for memory savings (future feature)
+4. **Mixed Precision**: Enable fp16 or bfloat16 for memory savings and faster training
 
 ## 🐛 Troubleshooting
 
