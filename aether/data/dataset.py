@@ -33,8 +33,7 @@ def process_dataset(dataset: Any, maxlen: int, tokenizer: Any) -> Any:
     # Apply tokenization and padding
     processed = dataset.map(
         tokenize_and_pad,
-        remove_columns=['text'],
-        desc="Tokenizing"
+        remove_columns=['text']
     )
     
     # Shuffle the dataset for better training
