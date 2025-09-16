@@ -83,16 +83,7 @@ def train_step(
     (loss, _), grads = grad_fn(model, batch, training=True)
     
     # Update model parameters
-    # Handle compatibility between different Flax versions
-    try:
-        # New API (Flax >= 0.11.0): update(model, grads)
-        optimizer.update(model, grads)
-    except TypeError as e:
-        if "takes 2 positional arguments but 3 were given" in str(e):
-            # Old API (Flax < 0.11.0): update(grads)
-            optimizer.update(grads)
-        else:
-            raise e
+    optimizer.update(model, grads)
     
     return loss, model, optimizer
 
