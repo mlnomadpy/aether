@@ -3,10 +3,13 @@
 import abc
 from typing import Any, Dict, Optional
 import jax.numpy as jnp
-import flax.nnx as nnx
+try:
+    import flax.nnx as nnx
+except ImportError:
+    nnx = None
 
 
-class BaseModel(nnx.Module, abc.ABC):
+class BaseModel(abc.ABC):
     """Abstract base class for all Aether models."""
     
     @abc.abstractmethod
@@ -33,7 +36,7 @@ class BaseModel(nnx.Module, abc.ABC):
     
     @classmethod
     @abc.abstractmethod
-    def from_config(cls, config: Dict[str, Any], rngs: nnx.Rngs) -> "BaseModel":
+    def from_config(cls, config: Dict[str, Any], rngs: Any) -> "BaseModel":
         """Create model from configuration.
         
         Args:

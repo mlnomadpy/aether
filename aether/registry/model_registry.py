@@ -1,7 +1,12 @@
 """Model registry for dynamic model creation and management."""
 
 from typing import Dict, Any, Type, Callable, Optional
-import flax.nnx as nnx
+try:
+    import flax.nnx as nnx
+except ImportError:
+    nnx = None
+    print("Warning: flax.nnx not available. Some functionality may be limited.")
+
 from ..models.base import BaseModel
 
 
@@ -41,7 +46,7 @@ class ModelRegistry:
         self, 
         name: str, 
         config: Dict[str, Any], 
-        rngs: nnx.Rngs,
+        rngs: Any,  # nnx.Rngs
         **kwargs
     ) -> BaseModel:
         """Create a model instance.
