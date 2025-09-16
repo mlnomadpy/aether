@@ -4,7 +4,7 @@ import jax
 import jax.numpy as jnp
 import flax.nnx as nnx
 import optax
-from typing import Tuple, Any, Optional
+from typing import Tuple, Any
 
 
 def loss_fn(model: nnx.Module, batch: jnp.ndarray, training: bool = True) -> Tuple[jnp.ndarray, Any]:
@@ -39,29 +39,6 @@ def loss_fn(model: nnx.Module, batch: jnp.ndarray, training: bool = True) -> Tup
     return jnp.mean(loss), logits
 
 
-def apply_mixed_precision(params, mixed_precision: Optional[str]) -> Any:
-    """Apply mixed precision casting to model parameters.
-    
-    Args:
-        params: Model parameters
-        mixed_precision: Mixed precision mode ("fp16", "bfloat16", or None)
-        
-    Returns:
-        Parameters cast to specified precision
-    """
-    if mixed_precision is None:
-        return params
-    
-    target_dtype = jnp.bfloat16 if mixed_precision == "bfloat16" else jnp.float16
-    
-    def cast_to_precision(x):
-        if isinstance(x, jnp.ndarray) and jnp.issubdtype(x.dtype, jnp.floating):
-            return jax.lax.convert_element_type(x, target_dtype)
-        return x
-    
-    return jax.tree_util.tree_map(cast_to_precision, params)
-
-
 @nnx.jit
 def train_step(
     model: nnx.Module, 
@@ -83,7 +60,7 @@ def train_step(
     (loss, _), grads = grad_fn(model, batch, training=True)
     
     # Update model parameters
-    optimizer.update(model, grads)
+    optimizer.update(grads)
     
     return loss, model, optimizer
 
