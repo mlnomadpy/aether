@@ -30,6 +30,9 @@ class Trainer:
         self.mesh = setup_mesh()
         self.tokenizer = get_tokenizer(config.data.tokenizer_name)
 
+        # Set up precision policy
+        self._setup_precision()
+
         # Setup logging
         self._setup_logging()
 
@@ -50,10 +53,37 @@ class Trainer:
         """Setup logging and experiment tracking."""
         wandb.init(project=self.config.logging.wandb_project, config=self.config.to_dict())
 
+    def _setup_precision(self) -> None:
+        """Setup precision policy for training."""
+        precision = self.config.training.precision.lower()
+        
+        if precision == "bfloat16":
+            # Configure JAX to use bfloat16 for computations
+            from jax import config as jax_config
+            jax_config.update('jax_default_matmul_precision', 'bfloat16')
+            
+            # Set the default dtype for parameters
+            self._param_dtype = jnp.bfloat16
+            self._compute_dtype = jnp.bfloat16
+            print("Using BFloat16 precision for training")
+        elif precision == "float32":
+            self._param_dtype = jnp.float32
+            self._compute_dtype = jnp.float32
+            print("Using Float32 precision for training")
+        else:
+            raise ValueError(f"Unsupported precision: {precision}. Options are 'float32' or 'bfloat16'")
+
     def _create_model(self) -> nnx.Module:
         """Create model from configuration."""
         model_config = self.config.get_model_config_dict()
-        return create_model(self.config.model.name, model_config, self.rngs, mesh=self.mesh)
+        return create_model(
+            self.config.model.name, 
+            model_config, 
+            self.rngs, 
+            mesh=self.mesh,
+            param_dtype=self._param_dtype,
+            compute_dtype=self._compute_dtype
+        )
 
     def _create_learning_rate_schedule(self, base_lr: float, total_steps: int, 
                                      scheduler: str, alpha: float, 

@@ -11,6 +11,7 @@ Aether is a production-ready, modular framework for training transformer models 
 - **Modular Architecture**: Clean separation of concerns with pluggable components
 - **Multiple Model Support**: Built-in support for different transformer architectures (Linear, YAT)
 - **Model Registry**: Dynamic model registration and creation system
+- **Mixed Precision Training**: BFloat16 support for 50% memory reduction and faster training
 - **Distributed Training**: JAX mesh-based sharding for efficient multi-device training
 - **Configuration Management**: Flexible JSON/YAML configuration system
 - **Experiment Tracking**: Integrated Weights & Biases (wandb) support
@@ -126,7 +127,8 @@ Aether uses a hierarchical configuration system with support for JSON and YAML f
     "lr_scheduler_alpha": 0.1,
     "lr_scheduler_warmup_steps": null,
     "momentum": 0.9,
-    "weight_decay": 0.01
+    "weight_decay": 0.01,
+    "precision": "float32"
   },
   "data": {
     "dataset_name": "HuggingFaceFW/fineweb",
@@ -148,6 +150,7 @@ Aether uses a hierarchical configuration system with support for JSON and YAML f
 - `configs/yat_config.json`: YAT architecture transformer
 - `configs/cosine_adamw_config.json`: AdamW optimizer with cosine learning rate decay
 - `configs/sgd_warmup_cosine_config.json`: SGD optimizer with warmup cosine schedule
+- `configs/bfloat16_example.json`: BFloat16 mixed precision training configuration
 
 ### Optimizers and Learning Rate Schedulers
 
@@ -185,6 +188,62 @@ Aether supports multiple optimizers and learning rate schedules for flexible tra
   }
 }
 ```
+
+### Mixed Precision Training with BFloat16
+
+Aether supports BFloat16 mixed precision training for improved memory efficiency and training speed:
+
+#### BFloat16 Benefits
+- **50% Memory Reduction**: Model parameters and activations use half the memory
+- **Faster Training**: Improved throughput on modern hardware (TPUs, newer GPUs)
+- **Maintained Accuracy**: BFloat16 provides better numerical stability than Float16
+- **Easy Configuration**: Single parameter controls entire precision policy
+
+#### Configuration
+```json
+{
+  "training": {
+    "precision": "bfloat16",  // Enable BFloat16 precision
+    "optimizer": "adamw",
+    "learning_rate": 0.001
+  }
+}
+```
+
+#### Python API Usage
+```python
+from aether import Config, Trainer
+
+# Configure BFloat16 training
+config = Config()
+config.training.precision = "bfloat16"
+config.training.optimizer = "adamw"
+
+# Train with BFloat16
+trainer = Trainer(config)
+trainer.train()
+```
+
+#### Memory Usage Comparison
+| Precision | Model Size (GPT-2 768d, 6 layers) | Memory Savings |
+|-----------|-----------------------------------|----------------|
+| Float32   | ~378 MB                          | Baseline       |
+| BFloat16  | ~189 MB                          | ~50%           |
+
+#### Example Configuration
+See `configs/bfloat16_example.json` for a complete BFloat16 training configuration.
+
+#### Demo Script
+```bash
+# Run BFloat16 demonstration
+python demo_bfloat16.py
+```
+
+The demo script showcases:
+- BFloat16 model creation and inference
+- Memory usage comparison
+- Configuration management
+- Performance benefits
 
 ## 🏗️ Architecture Overview
 

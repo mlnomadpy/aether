@@ -7,7 +7,7 @@ import flax.nnx as nnx
 class TokenAndPositionEmbedding(nnx.Module):
     """Combines token and positional embeddings."""
     
-    def __init__(self, maxlen: int, vocab_size: int, embed_dim: int, *, rngs: nnx.Rngs):
+    def __init__(self, maxlen: int, vocab_size: int, embed_dim: int, *, rngs: nnx.Rngs, param_dtype: jnp.dtype = jnp.float32):
         """Initialize embeddings.
         
         Args:
@@ -15,13 +15,14 @@ class TokenAndPositionEmbedding(nnx.Module):
             vocab_size: Vocabulary size
             embed_dim: Embedding dimension
             rngs: Random number generators
+            param_dtype: Data type for parameters
         """
         self.maxlen = maxlen
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
         
-        self.token_emb = nnx.Embed(num_embeddings=vocab_size, features=embed_dim, rngs=rngs)
-        self.pos_emb = nnx.Embed(num_embeddings=maxlen, features=embed_dim, rngs=rngs)
+        self.token_emb = nnx.Embed(num_embeddings=vocab_size, features=embed_dim, param_dtype=param_dtype, rngs=rngs)
+        self.pos_emb = nnx.Embed(num_embeddings=maxlen, features=embed_dim, param_dtype=param_dtype, rngs=rngs)
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
         """Apply token and position embeddings.

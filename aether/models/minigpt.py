@@ -24,6 +24,8 @@ class MiniGPT(BaseModel):
         rngs: nnx.Rngs,
         architecture: str = "linear",
         mesh: Optional[object] = None,
+        param_dtype: jnp.dtype = jnp.float32,
+        compute_dtype: jnp.dtype = jnp.float32,
         **kwargs
     ):
         """Initialize MiniGPT model.
@@ -38,6 +40,8 @@ class MiniGPT(BaseModel):
             rngs: Random number generators
             architecture: Architecture type ('linear' or 'yat')
             mesh: JAX mesh for sharding
+            param_dtype: Data type for parameters
+            compute_dtype: Data type for computations
             **kwargs: Additional arguments passed to transformer blocks
         """
         self.maxlen = maxlen
@@ -47,10 +51,12 @@ class MiniGPT(BaseModel):
         self.feed_forward_dim = feed_forward_dim
         self.num_transformer_blocks = num_transformer_blocks
         self.architecture = architecture
+        self.param_dtype = param_dtype
+        self.compute_dtype = compute_dtype
         
         # Embedding layer
         self.embedding_layer = TokenAndPositionEmbedding(
-            maxlen, vocab_size, embed_dim, rngs=rngs
+            maxlen, vocab_size, embed_dim, rngs=rngs, param_dtype=param_dtype
         )
         
         # Transformer blocks
@@ -62,6 +68,8 @@ class MiniGPT(BaseModel):
                 rngs=rngs,
                 mesh=mesh,
                 architecture=architecture,
+                param_dtype=param_dtype,
+                compute_dtype=compute_dtype,
                 **kwargs
             )
             for _ in range(num_transformer_blocks)
@@ -100,6 +108,7 @@ class MiniGPT(BaseModel):
                 out_features=vocab_size,
                 kernel_init=kernel_init,
                 bias_init=bias_init,
+                param_dtype=param_dtype,
                 rngs=rngs
             )
 

@@ -21,6 +21,8 @@ class TransformerBlock(nnx.Module):
         rate: float = 0.1,
         mesh: Optional[object] = None,
         architecture: str = "linear",
+        param_dtype: jnp.dtype = jnp.float32,
+        compute_dtype: jnp.dtype = jnp.float32,
         **kwargs
     ):
         """Initialize transformer block.
@@ -33,6 +35,8 @@ class TransformerBlock(nnx.Module):
             rate: Dropout rate
             mesh: JAX mesh for sharding
             architecture: Architecture type ('linear' or 'yat')
+            param_dtype: Data type for parameters
+            compute_dtype: Data type for computations
             **kwargs: Additional architecture-specific arguments
         """
         self.embed_dim = embed_dim
@@ -40,6 +44,8 @@ class TransformerBlock(nnx.Module):
         self.ff_dim = ff_dim
         self.rate = rate
         self.architecture = architecture
+        self.param_dtype = param_dtype
+        self.compute_dtype = compute_dtype
         
         # Set up partitioning if mesh is provided
         if mesh is not None:
@@ -71,27 +77,29 @@ class TransformerBlock(nnx.Module):
             in_features=embed_dim,
             kernel_init=kernel_init,
             bias_init=bias_init,
+            param_dtype=param_dtype,
             rngs=rngs
         )
         self.dropout1 = nnx.Dropout(rate=rate, rngs=rngs)
         
         # Feed-forward network based on architecture
         if architecture == "linear":
-            self._create_linear_ffn(embed_dim, ff_dim, kernel_init, bias_init, layer_norm_scale_init, rngs)
+            self._create_linear_ffn(embed_dim, ff_dim, kernel_init, bias_init, layer_norm_scale_init, rngs, param_dtype)
         elif architecture == "yat":
-            self._create_yat_ffn(embed_dim, ff_dim, kernel_init, bias_init, alpha_init, layer_norm_scale_init, rngs)
+            self._create_yat_ffn(embed_dim, ff_dim, kernel_init, bias_init, alpha_init, layer_norm_scale_init, rngs, param_dtype)
         else:
             raise ValueError(f"Unknown architecture: {architecture}")
             
         self.dropout2 = nnx.Dropout(rate=rate, rngs=rngs)
     
-    def _create_linear_ffn(self, embed_dim, ff_dim, kernel_init, bias_init, layer_norm_scale_init, rngs):
+    def _create_linear_ffn(self, embed_dim, ff_dim, kernel_init, bias_init, layer_norm_scale_init, rngs, param_dtype):
         """Create linear feed-forward network."""
         self.layer_norm1 = nnx.LayerNorm(
             epsilon=1e-6,
             num_features=embed_dim,
             scale_init=layer_norm_scale_init,
             bias_init=bias_init,
+            param_dtype=param_dtype,
             rngs=rngs
         )
         self.linear1 = nnx.Linear(
@@ -99,6 +107,7 @@ class TransformerBlock(nnx.Module):
             out_features=ff_dim,
             kernel_init=kernel_init,
             bias_init=bias_init,
+            param_dtype=param_dtype,
             rngs=rngs
         )
         self.linear2 = nnx.Linear(
@@ -106,6 +115,7 @@ class TransformerBlock(nnx.Module):
             out_features=embed_dim,
             kernel_init=kernel_init,
             bias_init=bias_init,
+            param_dtype=param_dtype,
             rngs=rngs
         )
         self.layer_norm2 = nnx.LayerNorm(
@@ -113,10 +123,11 @@ class TransformerBlock(nnx.Module):
             num_features=embed_dim,
             scale_init=layer_norm_scale_init,
             bias_init=bias_init,
+            param_dtype=param_dtype,
             rngs=rngs
         )
     
-    def _create_yat_ffn(self, embed_dim, ff_dim, kernel_init, bias_init, alpha_init, layer_norm_scale_init, rngs):
+    def _create_yat_ffn(self, embed_dim, ff_dim, kernel_init, bias_init, alpha_init, layer_norm_scale_init, rngs, param_dtype):
         """Create YAT feed-forward network."""
         try:
             from nmn.nnx.nmn import YatNMN
@@ -140,6 +151,7 @@ class TransformerBlock(nnx.Module):
             use_bias=False,
             kernel_init=kernel_init,
             bias_init=bias_init,
+            param_dtype=param_dtype,
             rngs=rngs
         )
         self.layer_norm1 = nnx.LayerNorm(
@@ -147,6 +159,7 @@ class TransformerBlock(nnx.Module):
             num_features=embed_dim,
             scale_init=layer_norm_scale_init,
             bias_init=bias_init,
+            param_dtype=param_dtype,
             rngs=rngs
         )
 
@@ -155,6 +168,7 @@ class TransformerBlock(nnx.Module):
             num_features=embed_dim,
             scale_init=layer_norm_scale_init,
             bias_init=bias_init,
+            param_dtype=param_dtype,
             rngs=rngs
         )
 
