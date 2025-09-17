@@ -55,14 +55,84 @@ class Trainer:
         model_config = self.config.get_model_config_dict()
         return create_model(self.config.model.name, model_config, self.rngs, mesh=self.mesh)
 
+    def _create_learning_rate_schedule(self, base_lr: float, total_steps: int, 
+                                     scheduler: str, alpha: float, 
+                                     warmup_steps: Optional[int] = None):
+        """Create learning rate schedule from configuration."""
+        scheduler = scheduler.lower()
+        
+        if scheduler == "constant":
+            return base_lr
+        elif scheduler == "linear":
+            return optax.linear_schedule(
+                init_value=base_lr,
+                end_value=alpha * base_lr,
+                transition_steps=total_steps
+            )
+        elif scheduler == "cosine":
+            return optax.cosine_decay_schedule(
+                init_value=base_lr,
+                decay_steps=total_steps,
+                alpha=alpha
+            )
+        elif scheduler == "warmup_cosine":
+            if warmup_steps is None:
+                # Default to 10% of total steps for warmup
+                warmup_steps = max(1, total_steps // 10)
+            return optax.warmup_cosine_decay_schedule(
+                init_value=0.0,
+                peak_value=base_lr,
+                warmup_steps=warmup_steps,
+                decay_steps=total_steps - warmup_steps,
+                end_value=alpha * base_lr
+            )
+        else:
+            raise ValueError(f"Unsupported learning rate scheduler: {scheduler}")
+
     def _create_optimizer(self) -> nnx.Optimizer:
         """Create optimizer from configuration."""
-        if self.config.training.optimizer == "novograd":
-            optimizer_fn = optax.novograd(self.config.training.learning_rate)
-        elif self.config.training.optimizer == "adam":
-            optimizer_fn = optax.adam(self.config.training.learning_rate)
-        elif self.config.training.optimizer == "adamw":
-            optimizer_fn = optax.adamw(self.config.training.learning_rate)
+        # Calculate total training steps for schedulers
+        tokens_per_iteration = self.config.training.batch_size * self.config.model.maxlen
+        total_steps = self.config.training.max_tokens_to_process // tokens_per_iteration
+        
+        # Create learning rate schedule
+        learning_rate = self._create_learning_rate_schedule(
+            base_lr=self.config.training.learning_rate,
+            total_steps=total_steps,
+            scheduler=self.config.training.lr_scheduler,
+            alpha=self.config.training.lr_scheduler_alpha,
+            warmup_steps=self.config.training.lr_scheduler_warmup_steps
+        )
+        
+        # Create optimizer
+        optimizer_name = self.config.training.optimizer.lower()
+        
+        if optimizer_name == "novograd":
+            optimizer_fn = optax.novograd(learning_rate)
+        elif optimizer_name == "adam":
+            optimizer_fn = optax.adam(learning_rate)
+        elif optimizer_name == "adamw":
+            optimizer_fn = optax.adamw(
+                learning_rate=learning_rate,
+                weight_decay=self.config.training.weight_decay
+            )
+        elif optimizer_name == "sgd":
+            optimizer_fn = optax.sgd(
+                learning_rate=learning_rate,
+                momentum=self.config.training.momentum
+            )
+        elif optimizer_name == "rmsprop":
+            optimizer_fn = optax.rmsprop(learning_rate)
+        elif optimizer_name == "lion":
+            optimizer_fn = optax.lion(learning_rate)
+        elif optimizer_name == "adagrad":
+            optimizer_fn = optax.adagrad(learning_rate)
+        elif optimizer_name == "adadelta":
+            optimizer_fn = optax.adadelta(learning_rate)
+        elif optimizer_name == "adamax":
+            optimizer_fn = optax.adamax(learning_rate)
+        elif optimizer_name == "nadam":
+            optimizer_fn = optax.nadam(learning_rate)
         else:
             raise ValueError(f"Unsupported optimizer: {self.config.training.optimizer}")
 

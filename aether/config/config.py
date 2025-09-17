@@ -32,6 +32,13 @@ class TrainingConfig:
     val_set_size: int = 20000
     checkpoint_interval: int = 10000
     optimizer: str = "novograd"
+    # Learning rate scheduler settings
+    lr_scheduler: str = "constant"  # Options: "constant", "linear", "cosine", "warmup_cosine"
+    lr_scheduler_alpha: float = 0.0  # Minimum learning rate multiplier for cosine schedules
+    lr_scheduler_warmup_steps: Optional[int] = None  # Warmup steps for warmup schedules
+    # Optimizer-specific settings
+    momentum: float = 0.9  # For optimizers that support momentum (SGD, etc.)
+    weight_decay: float = 0.0  # Weight decay for regularization
 
 
 @dataclass

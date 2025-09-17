@@ -121,7 +121,12 @@ Aether uses a hierarchical configuration system with support for JSON and YAML f
     "eval_steps": 1000,
     "val_set_size": 20000,
     "checkpoint_interval": 10000,
-    "optimizer": "novograd"
+    "optimizer": "adamw",
+    "lr_scheduler": "cosine",
+    "lr_scheduler_alpha": 0.1,
+    "lr_scheduler_warmup_steps": null,
+    "momentum": 0.9,
+    "weight_decay": 0.01
   },
   "data": {
     "dataset_name": "HuggingFaceFW/fineweb",
@@ -141,6 +146,45 @@ Aether uses a hierarchical configuration system with support for JSON and YAML f
 
 - `configs/linear_config.json`: Standard linear transformer
 - `configs/yat_config.json`: YAT architecture transformer
+- `configs/cosine_adamw_config.json`: AdamW optimizer with cosine learning rate decay
+- `configs/sgd_warmup_cosine_config.json`: SGD optimizer with warmup cosine schedule
+
+### Optimizers and Learning Rate Schedulers
+
+Aether supports multiple optimizers and learning rate schedules for flexible training:
+
+#### Supported Optimizers
+- `adam`: Adam optimizer
+- `adamw`: AdamW with weight decay
+- `sgd`: Stochastic Gradient Descent with momentum
+- `rmsprop`: RMSprop optimizer
+- `novograd`: Novograd optimizer (default)
+- `lion`: Lion optimizer
+- `adagrad`: AdaGrad optimizer
+- `adadelta`: AdaDelta optimizer
+- `adamax`: AdaMax optimizer
+- `nadam`: Nesterov Adam optimizer
+
+#### Supported Learning Rate Schedulers
+- `constant`: Fixed learning rate (default)
+- `linear`: Linear decay from initial to final value
+- `cosine`: Cosine decay schedule
+- `warmup_cosine`: Cosine decay with linear warmup
+
+#### Configuration Example
+```json
+{
+  "training": {
+    "optimizer": "adamw",
+    "learning_rate": 0.002,
+    "lr_scheduler": "cosine",
+    "lr_scheduler_alpha": 0.1,
+    "lr_scheduler_warmup_steps": 5000,
+    "momentum": 0.9,
+    "weight_decay": 0.01
+  }
+}
+```
 
 ## 🏗️ Architecture Overview
 
