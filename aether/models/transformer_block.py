@@ -79,7 +79,7 @@ class TransformerBlock(nnx.Module):
         if architecture == "linear":
             self._create_linear_ffn(embed_dim, ff_dim, kernel_init, bias_init, layer_norm_scale_init, rngs)
         elif architecture == "yat":
-            self._create_yat_ffn(embed_dim, ff_dim, kernel_init, bias_init, alpha_init, rngs)
+            self._create_yat_ffn(embed_dim, ff_dim, kernel_init, bias_init, alpha_init, layer_norm_scale_init, rngs)
         else:
             raise ValueError(f"Unknown architecture: {architecture}")
             
@@ -116,7 +116,7 @@ class TransformerBlock(nnx.Module):
             rngs=rngs
         )
     
-    def _create_yat_ffn(self, embed_dim, ff_dim, kernel_init, bias_init, alpha_init, rngs):
+    def _create_yat_ffn(self, embed_dim, ff_dim, kernel_init, bias_init, alpha_init, layer_norm_scale_init, rngs):
         """Create YAT feed-forward network."""
         try:
             from nmn.nnx.nmn import YatNMN
