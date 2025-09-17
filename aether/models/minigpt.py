@@ -81,21 +81,21 @@ class MiniGPT(BaseModel):
             kernel_init = nnx.initializers.xavier_uniform()
             bias_init = nnx.initializers.zeros_init()
         
-        if architecture == "yat":
-            try:
-                from nmn.nnx.nmn import YatNMN
-                self.output_layer = YatNMN(
-                    in_features=embed_dim,
-                    out_features=vocab_size,
-                    kernel_init=kernel_init,
-                    bias_init=bias_init,
-                    use_bias=False,
-                    rngs=rngs
-                )
-            except ImportError:
-                raise ImportError("YatNMN architecture requires the 'nmn' package.")
-        else:
-            self.output_layer = nnx.Linear(
+        # if architecture == "yat":
+        #     try:
+        #         from nmn.nnx.nmn import YatNMN
+        #         self.output_layer = YatNMN(
+        #             in_features=embed_dim,
+        #             out_features=vocab_size,
+        #             kernel_init=kernel_init,
+        #             bias_init=bias_init,
+        #             use_bias=False,
+        #             rngs=rngs
+        #         )
+        #     except ImportError:
+        #         raise ImportError("YatNMN architecture requires the 'nmn' package.")
+        # else:
+        self.output_layer = nnx.Linear(
                 in_features=embed_dim,
                 out_features=vocab_size,
                 kernel_init=kernel_init,
