@@ -142,6 +142,22 @@ class TransformerBlock(nnx.Module):
             bias_init=bias_init,
             rngs=rngs
         )
+        self.layer_norm1 = nnx.LayerNorm(
+            epsilon=1e-6,
+            num_features=embed_dim,
+            scale_init=layer_norm_scale_init,
+            bias_init=bias_init,
+            rngs=rngs
+        )
+
+        self.layer_norm2 = nnx.LayerNorm(
+            epsilon=1e-6,
+            num_features=embed_dim,
+            scale_init=layer_norm_scale_init,
+            bias_init=bias_init,
+            rngs=rngs
+        )
+
 
     def __call__(self, inputs: jnp.ndarray, training: bool = False) -> jnp.ndarray:
         """Forward pass through the transformer block.
@@ -171,11 +187,11 @@ class TransformerBlock(nnx.Module):
         
         elif self.architecture == "yat":
             # YAT architecture without explicit layer normalization
-            out1 = inputs + attention_output
+            out1 = self.layer_norm1(inputs + attention_output)
             ffn_output = self.non_linear1(out1)
             ffn_output = self.out_linear1(ffn_output)
             ffn_output = self.dropout2(ffn_output, deterministic=not training)
-            return out1 + ffn_output
+            return self.layer_norm2(out1 + ffn_output)
         
         else:
             raise ValueError(f"Unknown architecture: {self.architecture}")
