@@ -13,7 +13,7 @@ from typing import Dict, Any, Optional
 from .steps import train_step, eval_step
 from ..config import Config
 from ..registry import create_model
-from ..data import create_data_iterators, prepare_batch
+from ..data import create_data_iterators, create_validation_iterator, create_training_iterator, prepare_batch
 from ..utils import setup_mesh, get_tokenizer
 
 
@@ -80,13 +80,37 @@ class Trainer:
             batch_size=self.config.training.batch_size,
         )
 
+    def _create_validation_iterator(self):
+        """Create only the validation iterator."""
+        return create_validation_iterator(
+            dataset_name=self.config.data.dataset_name,
+            split=self.config.data.split,
+            streaming=self.config.data.streaming,
+            maxlen=self.config.model.maxlen,
+            tokenizer=self.tokenizer,
+            val_set_size=self.config.training.val_set_size,
+            batch_size=self.config.training.batch_size,
+        )
+
+    def _create_training_iterator(self):
+        """Create only the training iterator."""
+        return create_training_iterator(
+            dataset_name=self.config.data.dataset_name,
+            split=self.config.data.split,
+            streaming=self.config.data.streaming,
+            maxlen=self.config.model.maxlen,
+            tokenizer=self.tokenizer,
+            val_set_size=self.config.training.val_set_size,
+            batch_size=self.config.training.batch_size,
+        )
+
     def _reset_validation_iterator(self):
         """Reset only the validation iterator."""
-        _, self.val_iterator = self._create_data_iterators()
+        self.val_iterator = self._create_validation_iterator()
 
     def _reset_training_iterator(self):
         """Reset only the training iterator."""
-        self.train_iterator, _ = self._create_data_iterators()
+        self.train_iterator = self._create_training_iterator()
 
     def train(self) -> None:
         """Main training loop."""
