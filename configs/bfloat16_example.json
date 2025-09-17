@@ -1,0 +1,40 @@
+{
+  "model": {
+    "name": "minigpt-linear",
+    "architecture": "linear",
+    "maxlen": 512,
+    "vocab_size": 50257,
+    "embed_dim": 768,
+    "num_heads": 12,
+    "feed_forward_dim": 768,
+    "num_transformer_blocks": 6,
+    "dropout_rate": 0.1
+  },
+  "training": {
+    "batch_size": 16,
+    "learning_rate": 1e-3,
+    "max_tokens_to_process": 1000000,
+    "eval_interval": 1000,
+    "eval_steps": 100,
+    "val_set_size": 10000,
+    "checkpoint_interval": 5000,
+    "optimizer": "adamw",
+    "lr_scheduler": "cosine",
+    "lr_scheduler_alpha": 0.1,
+    "momentum": 0.9,
+    "weight_decay": 0.01,
+    "precision": "bfloat16"
+  },
+  "data": {
+    "dataset_name": "HuggingFaceFW/fineweb",
+    "split": "train",
+    "streaming": true,
+    "tokenizer_name": "gpt2"
+  },
+  "logging": {
+    "wandb_project": "aether-bfloat16-training",
+    "checkpoint_dir": "./checkpoints_bfloat16",
+    "log_level": "INFO",
+    "log_file": null
+  }
+}
