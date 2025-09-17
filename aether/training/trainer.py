@@ -176,8 +176,9 @@ class Trainer:
         # Extract model parameters
         _, params_state, _ = nnx.split(self.model, nnx.Param, ...)
 
-        # Save checkpoint
+        # Save checkpoint with absolute path (required by Orbax)
         checkpoint_path = os.path.join(self.config.logging.checkpoint_dir, f"step_{step}")
+        checkpoint_path = os.path.abspath(checkpoint_path)
         self.checkpointer.save(checkpoint_path, params_state)
         print(f"Checkpoint saved at step {step}")
 
@@ -187,6 +188,9 @@ class Trainer:
         Args:
             checkpoint_path: Path to checkpoint
         """
+        # Ensure absolute path for consistency with save_checkpoint
+        checkpoint_path = os.path.abspath(checkpoint_path)
+        
         # Load parameters
         params_state = self.checkpointer.restore(checkpoint_path)
 
