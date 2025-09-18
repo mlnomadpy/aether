@@ -1,7 +1,7 @@
 """Configuration management for Aether."""
 
 from dataclasses import dataclass, field
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 import os
 import json
 import yaml
@@ -62,12 +62,20 @@ class LoggingConfig:
 
 
 @dataclass
+class DeviceConfig:
+    """Device and mesh configuration."""
+    mesh_shape: Optional[Tuple[int, int]] = None  # (batch_dim, model_dim)
+    auto_detect_mesh: bool = True  # Whether to auto-detect mesh if mesh_shape is None
+
+
+@dataclass
 class Config:
     """Main configuration class."""
     model: ModelConfig = field(default_factory=ModelConfig)
     training: TrainingConfig = field(default_factory=TrainingConfig)
     data: DataConfig = field(default_factory=DataConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
+    device: DeviceConfig = field(default_factory=DeviceConfig)
     
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> "Config":
@@ -83,7 +91,8 @@ class Config:
             model=ModelConfig(**config_dict.get("model", {})),
             training=TrainingConfig(**config_dict.get("training", {})),
             data=DataConfig(**config_dict.get("data", {})),
-            logging=LoggingConfig(**config_dict.get("logging", {}))
+            logging=LoggingConfig(**config_dict.get("logging", {})),
+            device=DeviceConfig(**config_dict.get("device", {}))
         )
     
     @classmethod
@@ -119,7 +128,8 @@ class Config:
             "model": self.model.__dict__,
             "training": self.training.__dict__,
             "data": self.data.__dict__,
-            "logging": self.logging.__dict__
+            "logging": self.logging.__dict__,
+            "device": self.device.__dict__
         }
     
     def save(self, config_path: str) -> None:

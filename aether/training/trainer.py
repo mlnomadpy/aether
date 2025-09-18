@@ -27,7 +27,7 @@ class Trainer:
             config: Training configuration
         """
         self.config = config
-        self.mesh = setup_mesh()
+        self.mesh = setup_mesh(device_config=config.device)
         self.tokenizer = get_tokenizer(config.data.tokenizer_name)
 
         # Set up precision policy

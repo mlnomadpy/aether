@@ -1,13 +1,13 @@
 {
   "model": {
-    "name": "minigpt-yat",
-    "architecture": "yat",
+    "name": "minigpt-linear",
+    "architecture": "linear",
     "maxlen": 1024,
     "vocab_size": 50257,
-    "embed_dim": 768,
-    "num_heads": 12,
-    "feed_forward_dim": 768,
-    "num_transformer_blocks": 12,
+    "embed_dim": 1024,
+    "num_heads": 16,
+    "feed_forward_dim": 1024,
+    "num_transformer_blocks": 24,
     "dropout_rate": 0.1
   },
   "training": {
@@ -33,13 +33,13 @@
     "tokenizer_name": "gpt2"
   },
   "logging": {
-    "wandb_project": "fineweb-training-demo",
+    "wandb_project": "large-model-training",
     "checkpoint_dir": "./checkpoints",
     "log_level": "INFO",
     "log_file": null
   },
   "device": {
-    "mesh_shape": null,
-    "auto_detect_mesh": true
+    "mesh_shape": [2, 4],
+    "auto_detect_mesh": false
   }
 }
