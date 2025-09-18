@@ -1,13 +1,13 @@
 {
   "model": {
-    "name": "minigpt-yat",
-    "architecture": "yat",
+    "name": "minigpt-linear",
+    "architecture": "linear",
     "maxlen": 1024,
     "vocab_size": 50257,
-    "embed_dim": 768,
-    "num_heads": 12,
-    "feed_forward_dim": 768,
-    "num_transformer_blocks": 12,
+    "embed_dim": 512,
+    "num_heads": 8,
+    "feed_forward_dim": 512,
+    "num_transformer_blocks": 8,
     "dropout_rate": 0.1
   },
   "training": {

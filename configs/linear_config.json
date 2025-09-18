@@ -11,14 +11,20 @@
     "dropout_rate": 0.1
   },
   "training": {
-    "batch_size": 32,
-    "learning_rate": 0.002,
+    "batch_size": 64,
+    "precision": "bfloat16",
+    "learning_rate": 0.003,
     "max_tokens_to_process": 1000000000,
-    "eval_interval": 2000,
+    "eval_interval": 10000,
     "eval_steps": 1000,
-    "val_set_size": 20000,
+    "val_set_size": 10000,
     "checkpoint_interval": 10000,
-    "optimizer": "novograd"
+    "optimizer": "novograd",
+    "lr_scheduler": "cosine",
+    "lr_scheduler_alpha": 0.1,
+    "lr_scheduler_warmup_steps": 1000,
+    "momentum": 0.9,
+    "weight_decay": 0.01
   },
   "data": {
     "dataset_name": "HuggingFaceFW/fineweb",
@@ -27,7 +33,7 @@
     "tokenizer_name": "gpt2"
   },
   "logging": {
-    "wandb_project": "aether-linear-training",
+    "wandb_project": "fineweb-training-demo",
     "checkpoint_dir": "./checkpoints",
     "log_level": "INFO",
     "log_file": null
