@@ -37,5 +37,9 @@
     "checkpoint_dir": "./checkpoints",
     "log_level": "INFO",
     "log_file": null
+  },
+  "device": {
+    "mesh_shape": null,
+    "auto_detect_mesh": true
   }
 }
