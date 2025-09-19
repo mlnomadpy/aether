@@ -27,34 +27,25 @@ def loss_fn(model: nnx.Module, batch: Union[jnp.ndarray, Dict[str, jnp.ndarray]]
         raise ValueError(f"Unsupported training mode: {training_mode}")
 
 
-def clm_loss_fn(model: nnx.Module, batch: Union[jnp.ndarray, Dict[str, jnp.ndarray]], training: bool = True) -> Tuple[jnp.ndarray, Any]:
+def clm_loss_fn(model: nnx.Module, batch: jnp.ndarray, training: bool = True) -> Tuple[jnp.ndarray, Any]:
     """Compute the cross-entropy loss for causal language modeling.
     
     Args:
         model: The model to evaluate
-        batch: Input batch of token IDs (jnp.ndarray) or dict with 'tokens' key
+        batch: Input batch of token IDs
         training: Whether in training mode
         
     Returns:
         Tuple of (loss, logits)
     """
-    # Handle both array and dictionary batch formats
-    if isinstance(batch, dict):
-        if 'tokens' in batch:
-            tokens = batch['tokens']
-        else:
-            raise ValueError("CLM mode expects either a jnp.ndarray or a dict with 'tokens' key")
-    else:
-        tokens = batch
-    
     # Forward pass
-    logits = model(tokens, training=training)
+    logits = model(batch, training=training)
     
     # Shift for language modeling: predict next token
     # Input: [BOS, token1, token2, ..., tokenN]
     # Target: [token1, token2, ..., tokenN, EOS]
-    input_tokens = tokens[:, :-1]  # Remove last token
-    target_tokens = tokens[:, 1:]  # Remove first token
+    input_tokens = batch[:, :-1]  # Remove last token
+    target_tokens = batch[:, 1:]  # Remove first token
     
     # Get logits for the input tokens
     logits = logits[:, :-1, :]  # Remove logits for last position
@@ -89,27 +80,20 @@ def mlm_loss_fn(model: nnx.Module, batch: Dict[str, jnp.ndarray], training: bool
     # mask_labels contains -100 for unmasked positions and original token_id for masked positions
     mask = mask_labels != -100
     
-    # Use JAX-compatible method to compute loss only on masked tokens
-    # Instead of boolean indexing, we'll compute loss on all positions and mask out non-masked ones
-    # Reshape for cross-entropy computation
-    flat_logits = logits.reshape(-1, logits.shape[-1])
-    flat_labels = mask_labels.reshape(-1)
-    flat_mask = mask.reshape(-1)
+    # Get logits and labels for masked positions only
+    masked_logits = logits[mask]
+    masked_labels = mask_labels[mask]
     
-    # Compute cross-entropy loss on all positions
-    all_losses = optax.softmax_cross_entropy_with_integer_labels(
-        flat_logits,
-        jnp.where(flat_mask, flat_labels, 0)  # Use 0 for non-masked positions (will be masked out)
-    )
-    
-    # Apply mask to only consider losses from masked positions
-    masked_losses = jnp.where(flat_mask, all_losses, 0.0)
-    
-    # Compute mean loss over masked positions only
-    num_masked = jnp.sum(flat_mask)
-    loss = jnp.where(num_masked > 0, jnp.sum(masked_losses) / num_masked, 0.0)
-    
-    return loss, logits
+    # Compute cross-entropy loss only on masked tokens
+    if masked_logits.shape[0] > 0:  # Ensure we have some masked tokens
+        loss = optax.softmax_cross_entropy_with_integer_labels(
+            masked_logits,
+            masked_labels
+        )
+        return jnp.mean(loss), logits
+    else:
+        # No masked tokens in this batch (edge case)
+        return jnp.array(0.0), logits
 
 
 @nnx.jit(static_argnames=('training_mode',))
