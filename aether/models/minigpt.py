@@ -26,7 +26,6 @@ class MiniGPT(BaseModel):
         mesh: Optional[object] = None,
         param_dtype: jnp.dtype = jnp.float32,
         compute_dtype: jnp.dtype = jnp.float32,
-        mlp_dim_multiplier: float = 4.0,
         **kwargs
     ):
         """Initialize MiniGPT model.
@@ -43,7 +42,6 @@ class MiniGPT(BaseModel):
             mesh: JAX mesh for sharding
             param_dtype: Data type for parameters
             compute_dtype: Data type for computations
-            mlp_dim_multiplier: Multiplier for MLP hidden dimension (only used in 'yat' architecture)
             **kwargs: Additional arguments passed to transformer blocks
         """
         self.maxlen = maxlen
@@ -55,7 +53,6 @@ class MiniGPT(BaseModel):
         self.architecture = architecture
         self.param_dtype = param_dtype
         self.compute_dtype = compute_dtype
-        self.mlp_dim_multiplier = mlp_dim_multiplier
         
         # Embedding layer
         self.embedding_layer = TokenAndPositionEmbedding(
@@ -73,7 +70,6 @@ class MiniGPT(BaseModel):
                 architecture=architecture,
                 param_dtype=param_dtype,
                 compute_dtype=compute_dtype,
-                mlp_dim_multiplier=mlp_dim_multiplier,
                 **kwargs
             )
             for _ in range(num_transformer_blocks)
@@ -144,8 +140,7 @@ class MiniGPT(BaseModel):
             'num_heads': self.num_heads,
             'feed_forward_dim': self.feed_forward_dim,
             'num_transformer_blocks': self.num_transformer_blocks,
-            'architecture': self.architecture,
-            'mlp_dim_multiplier': self.mlp_dim_multiplier
+            'architecture': self.architecture
         }
     
     @classmethod
