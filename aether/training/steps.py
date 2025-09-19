@@ -96,7 +96,7 @@ def mlm_loss_fn(model: nnx.Module, batch: Dict[str, jnp.ndarray], training: bool
         return jnp.array(0.0), logits
 
 
-@nnx.jit
+@nnx.jit(static_argnames=('training_mode',))
 def train_step(
     model: nnx.Module, 
     optimizer: nnx.Optimizer, 
@@ -119,12 +119,12 @@ def train_step(
     loss, grads = grad_fn(model, batch)
     
     # Update model parameters
-    optimizer.update(grads)
+    optimizer.update(model, grads)
     
     return loss, model, optimizer
 
 
-@nnx.jit
+@nnx.jit(static_argnames=('training_mode',))
 def eval_step(model: nnx.Module, batch: Union[jnp.ndarray, Dict[str, jnp.ndarray]], training_mode: str = "clm") -> jnp.ndarray:
     """Perform a single evaluation step.
     
