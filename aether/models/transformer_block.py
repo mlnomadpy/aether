@@ -201,11 +201,11 @@ class TransformerBlock(nnx.Module):
         
         elif self.architecture == "yat":
             # YAT architecture without explicit layer normalization
-            out1 = self.layer_norm1(inputs + attention_output)
+            out1 = inputs + attention_output
             ffn_output = self.non_linear1(out1)
             ffn_output = self.out_linear1(ffn_output)
             ffn_output = self.dropout2(ffn_output, deterministic=not training)
-            return self.layer_norm2(out1 + ffn_output)
+            return out1 + ffn_output
         
         else:
             raise ValueError(f"Unknown architecture: {self.architecture}")
