@@ -23,7 +23,6 @@ class TransformerBlock(nnx.Module):
         architecture: str = "linear",
         param_dtype: jnp.dtype = jnp.float32,
         compute_dtype: jnp.dtype = jnp.float32,
-        mlp_dim_multiplier: float = 4.0,
         **kwargs
     ):
         """Initialize transformer block.
@@ -38,7 +37,6 @@ class TransformerBlock(nnx.Module):
             architecture: Architecture type ('linear' or 'yat')
             param_dtype: Data type for parameters
             compute_dtype: Data type for computations
-            mlp_dim_multiplier: Multiplier for MLP hidden dimension (only used in 'yat' architecture)
             **kwargs: Additional architecture-specific arguments
         """
         self.embed_dim = embed_dim
@@ -48,7 +46,6 @@ class TransformerBlock(nnx.Module):
         self.architecture = architecture
         self.param_dtype = param_dtype
         self.compute_dtype = compute_dtype
-        self.mlp_dim_multiplier = mlp_dim_multiplier
         
         # Set up partitioning if mesh is provided
         if mesh is not None:
@@ -89,7 +86,7 @@ class TransformerBlock(nnx.Module):
         if architecture == "linear":
             self._create_linear_ffn(embed_dim, ff_dim, kernel_init, bias_init, layer_norm_scale_init, rngs, param_dtype)
         elif architecture == "yat":
-            self._create_yat_ffn(embed_dim, ff_dim, kernel_init, bias_init, alpha_init, layer_norm_scale_init, rngs, param_dtype, mlp_dim_multiplier)
+            self._create_yat_ffn(embed_dim, ff_dim, kernel_init, bias_init, alpha_init, layer_norm_scale_init, rngs, param_dtype)
         else:
             raise ValueError(f"Unknown architecture: {architecture}")
             
@@ -130,18 +127,16 @@ class TransformerBlock(nnx.Module):
             rngs=rngs
         )
     
-    def _create_yat_ffn(self, embed_dim, ff_dim, kernel_init, bias_init, alpha_init, layer_norm_scale_init, rngs, param_dtype, mlp_dim_multiplier):
+    def _create_yat_ffn(self, embed_dim, ff_dim, kernel_init, bias_init, alpha_init, layer_norm_scale_init, rngs, param_dtype):
         """Create YAT feed-forward network."""
         try:
             from nmn.nnx.nmn import YatNMN
         except ImportError:
             raise ImportError("YatNMN architecture requires the 'nmn' package. Please install it first.")
         
-        mlp_hidden_dim = int(embed_dim * mlp_dim_multiplier)
-        
         self.non_linear1 = YatNMN(
             in_features=embed_dim,
-            out_features=mlp_hidden_dim,
+            out_features=4 * embed_dim,
             use_dropconnect=False,
             use_bias=False,
             drop_rate=0.,
@@ -151,7 +146,7 @@ class TransformerBlock(nnx.Module):
             rngs=rngs
         )
         self.out_linear1 = nnx.Linear(
-            in_features=mlp_hidden_dim,
+            in_features=4 * embed_dim,
             out_features=embed_dim,
             use_bias=False,
             kernel_init=kernel_init,
