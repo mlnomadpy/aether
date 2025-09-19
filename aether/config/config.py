@@ -32,13 +32,6 @@ class TrainingConfig:
     val_set_size: int = 20000
     checkpoint_interval: int = 10000
     optimizer: str = "novograd"
-    # Training mode settings
-    training_mode: str = "clm"  # Options: "clm" (causal language modeling), "mlm" (masked language modeling)
-    # MLM-specific settings
-    mlm_mask_prob: float = 0.15  # Probability of masking tokens for MLM
-    mlm_replace_prob: float = 0.8  # Probability of replacing masked tokens with [MASK]
-    mlm_random_prob: float = 0.1  # Probability of replacing masked tokens with random tokens
-    final_evaluation: bool = False  # Whether to run final evaluation at end of training
     # Learning rate scheduler settings
     lr_scheduler: str = "constant"  # Options: "constant", "linear", "cosine", "warmup_cosine"
     lr_scheduler_alpha: float = 0.0  # Minimum learning rate multiplier for cosine schedules
