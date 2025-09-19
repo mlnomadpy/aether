@@ -170,15 +170,6 @@ class Trainer:
 
     def _create_data_iterators(self):
         """Create data iterators."""
-        # Get MLM parameters if in MLM mode
-        mlm_kwargs = {}
-        if self.config.training.training_mode == "mlm":
-            mlm_kwargs = {
-                'mask_prob': self.config.training.mlm_mask_prob,
-                'replace_prob': self.config.training.mlm_replace_prob,
-                'random_prob': self.config.training.mlm_random_prob
-            }
-        
         return create_data_iterators(
             dataset_name=self.config.data.dataset_name,
             split=self.config.data.split,
@@ -187,21 +178,10 @@ class Trainer:
             tokenizer=self.tokenizer,
             val_set_size=self.config.training.val_set_size,
             batch_size=self.config.training.batch_size,
-            training_mode=self.config.training.training_mode,
-            **mlm_kwargs
         )
 
     def _create_validation_iterator(self):
         """Create only the validation iterator."""
-        # Get MLM parameters if in MLM mode
-        mlm_kwargs = {}
-        if self.config.training.training_mode == "mlm":
-            mlm_kwargs = {
-                'mask_prob': self.config.training.mlm_mask_prob,
-                'replace_prob': self.config.training.mlm_replace_prob,
-                'random_prob': self.config.training.mlm_random_prob
-            }
-        
         return create_validation_iterator(
             dataset_name=self.config.data.dataset_name,
             split=self.config.data.split,
@@ -210,21 +190,10 @@ class Trainer:
             tokenizer=self.tokenizer,
             val_set_size=self.config.training.val_set_size,
             batch_size=self.config.training.batch_size,
-            training_mode=self.config.training.training_mode,
-            **mlm_kwargs
         )
 
     def _create_training_iterator(self):
         """Create only the training iterator."""
-        # Get MLM parameters if in MLM mode
-        mlm_kwargs = {}
-        if self.config.training.training_mode == "mlm":
-            mlm_kwargs = {
-                'mask_prob': self.config.training.mlm_mask_prob,
-                'replace_prob': self.config.training.mlm_replace_prob,
-                'random_prob': self.config.training.mlm_random_prob
-            }
-        
         return create_training_iterator(
             dataset_name=self.config.data.dataset_name,
             split=self.config.data.split,
@@ -233,8 +202,6 @@ class Trainer:
             tokenizer=self.tokenizer,
             val_set_size=self.config.training.val_set_size,
             batch_size=self.config.training.batch_size,
-            training_mode=self.config.training.training_mode,
-            **mlm_kwargs
         )
 
     def _reset_validation_iterator(self):
@@ -251,7 +218,7 @@ class Trainer:
         tokens_per_iteration = self.config.training.batch_size * self.config.model.maxlen
         max_iterations = self.config.training.max_tokens_to_process // tokens_per_iteration
 
-        print(f"Starting {self.config.training.training_mode.upper()} training for {max_iterations} iterations...")
+        print(f"Starting training for {max_iterations} iterations...")
         print(f"Total tokens to process: {self.config.training.max_tokens_to_process:,}")
 
         start_time = time.time()
@@ -260,10 +227,10 @@ class Trainer:
             # Training step
             try:
                 batch = next(self.train_iterator)
-                sharded_batch = prepare_batch(batch, self.mesh, self.config.training.training_mode)
+                sharded_batch = prepare_batch(batch, self.mesh)
 
                 loss, self.model, self.optimizer = train_step(
-                    self.model, self.optimizer, sharded_batch, self.config.training.training_mode
+                    self.model, self.optimizer, sharded_batch
                 )
 
                 wandb.log({"train_loss": loss.item()}, step=step)
@@ -292,12 +259,6 @@ class Trainer:
                 )
 
         print("Training completed!")
-        
-        # Run final evaluation if configured
-        if self.config.training.final_evaluation:
-            print("Running final evaluation...")
-            self._final_evaluate()
-        
         wandb.finish()
 
     def _evaluate(self, step: int) -> None:
@@ -310,9 +271,9 @@ class Trainer:
         while batches_processed < max_eval_steps:
             try:
                 val_batch = next(self.val_iterator)
-                sharded_val_batch = prepare_batch(val_batch, self.mesh, self.config.training.training_mode)
+                sharded_val_batch = prepare_batch(val_batch, self.mesh)
 
-                val_loss = eval_step(self.model, sharded_val_batch, self.config.training.training_mode)
+                val_loss = eval_step(self.model, sharded_val_batch)
                 val_losses.append(val_loss)
                 batches_processed += 1
 
@@ -333,42 +294,6 @@ class Trainer:
                 f"Validation loss at step {step + 1}: {avg_val_loss.item():.4f} "
                 f"(computed over {batches_processed} batches)"
             )
-
-    def _final_evaluate(self) -> None:
-        """Run final comprehensive evaluation."""
-        print("=== Final Evaluation ===")
-        val_losses = []
-        total_batches = 0
-        
-        # Reset validation iterator to start from beginning
-        self._reset_validation_iterator()
-        
-        # Run through the entire validation set
-        while total_batches < self.config.training.val_set_size // self.config.training.batch_size:
-            try:
-                val_batch = next(self.val_iterator)
-                sharded_val_batch = prepare_batch(val_batch, self.mesh, self.config.training.training_mode)
-
-                val_loss = eval_step(self.model, sharded_val_batch, self.config.training.training_mode)
-                val_losses.append(val_loss)
-                total_batches += 1
-
-            except StopIteration:
-                print(f"Completed final evaluation with {total_batches} batches.")
-                break
-
-        if val_losses:
-            avg_val_loss = jnp.mean(jnp.array(val_losses))
-            print(f"Final validation loss: {avg_val_loss.item():.4f} (over {total_batches} batches)")
-            
-            # Log final metrics
-            wandb.log({
-                "final_val_loss": avg_val_loss.item(),
-                "final_val_batches": total_batches,
-                "training_mode": self.config.training.training_mode
-            })
-        else:
-            print("No validation batches processed in final evaluation.")
 
     def _save_checkpoint(self, step: int) -> None:
         """Save model checkpoint."""

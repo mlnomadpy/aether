@@ -1,20 +1,17 @@
 """Data processing utilities."""
 
 from datasets import load_dataset
-from typing import Any, Iterator, Dict, Optional
+from typing import Any, Iterator, Dict
 import jax.numpy as jnp
-import jax
 
 
-def process_dataset(dataset: Any, maxlen: int, tokenizer: Any, training_mode: str = "clm", **mlm_kwargs) -> Any:
+def process_dataset(dataset: Any, maxlen: int, tokenizer: Any) -> Any:
     """Process and tokenize a streaming dataset.
     
     Args:
         dataset: Input dataset
         maxlen: Maximum sequence length
         tokenizer: Tokenizer to use
-        training_mode: Training mode ("clm" or "mlm")
-        **mlm_kwargs: MLM-specific parameters (mask_prob, replace_prob, random_prob)
         
     Returns:
         Processed dataset
@@ -31,19 +28,7 @@ def process_dataset(dataset: Any, maxlen: int, tokenizer: Any, training_mode: st
             pad_id = getattr(tokenizer, 'pad_token_id', 0)
             tokens = tokens + [pad_id] * (maxlen - len(tokens))
         
-        result = {'tokens': tokens}
-        
-        # Add MLM masking if in MLM mode
-        if training_mode == "mlm":
-            masked_tokens, mask_labels = apply_mlm_masking(
-                tokens, tokenizer, **mlm_kwargs
-            )
-            result.update({
-                'masked_tokens': masked_tokens,
-                'mask_labels': mask_labels
-            })
-        
-        return result
+        return {'tokens': tokens}
     
     # Apply tokenization and padding
     processed = dataset.map(
@@ -57,59 +42,6 @@ def process_dataset(dataset: Any, maxlen: int, tokenizer: Any, training_mode: st
     return processed
 
 
-def apply_mlm_masking(tokens: list, tokenizer: Any, mask_prob: float = 0.15, 
-                      replace_prob: float = 0.8, random_prob: float = 0.1) -> tuple[list, list]:
-    """Apply MLM masking to tokens.
-    
-    Args:
-        tokens: List of token IDs
-        tokenizer: Tokenizer instance
-        mask_prob: Probability of masking each token
-        replace_prob: Probability of replacing masked tokens with [MASK] token
-        random_prob: Probability of replacing masked tokens with random tokens
-        
-    Returns:
-        Tuple of (masked_tokens, mask_labels)
-        mask_labels: -100 for unmasked, original_token_id for masked positions
-    """
-    # Get special token IDs
-    mask_token_id = getattr(tokenizer, 'mask_token_id', None)
-    pad_token_id = getattr(tokenizer, 'pad_token_id', 0)
-    vocab_size = getattr(tokenizer, 'vocab_size', 50257)
-    
-    # If no mask token available, use a placeholder (this is common for GPT-style tokenizers)
-    if mask_token_id is None:
-        # For GPT-2 style tokenizers, we'll use token_id 50256 as a pseudo-mask token
-        mask_token_id = vocab_size - 1
-    
-    tokens = tokens.copy()
-    mask_labels = [-100] * len(tokens)  # -100 means "ignore" in loss computation
-    
-    # Create random states
-    import random
-    random.seed(42)  # For reproducible masking
-    
-    for i, token in enumerate(tokens):
-        # Don't mask padding tokens
-        if token == pad_token_id:
-            continue
-            
-        # Randomly decide whether to mask this token
-        if random.random() < mask_prob:
-            mask_labels[i] = token  # Store original token for loss computation
-            
-            rand_val = random.random()
-            if rand_val < replace_prob:
-                # Replace with [MASK] token
-                tokens[i] = mask_token_id
-            elif rand_val < replace_prob + random_prob:
-                # Replace with random token
-                tokens[i] = random.randint(0, vocab_size - 1)
-            # Else: keep original token (10% of masked tokens)
-    
-    return tokens, mask_labels
-
-
 def create_data_iterators(
     dataset_name: str,
     split: str,
@@ -117,9 +49,7 @@ def create_data_iterators(
     maxlen: int,
     tokenizer: Any,
     val_set_size: int,
-    batch_size: int,
-    training_mode: str = "clm",
-    **mlm_kwargs
+    batch_size: int
 ) -> tuple[Iterator[Dict], Iterator[Dict]]:
     """Create training and validation data iterators.
     
@@ -131,8 +61,6 @@ def create_data_iterators(
         tokenizer: Tokenizer to use
         val_set_size: Number of samples for validation
         batch_size: Batch size for iterators
-        training_mode: Training mode ("clm" or "mlm")
-        **mlm_kwargs: MLM-specific parameters
         
     Returns:
         Tuple of (train_iterator, val_iterator)
@@ -146,8 +74,8 @@ def create_data_iterators(
     train_dataset_raw = full_dataset.skip(val_set_size)
     
     print("Processing training and validation datasets...")
-    train_dataset = process_dataset(train_dataset_raw, maxlen, tokenizer, training_mode, **mlm_kwargs)
-    val_dataset = process_dataset(val_dataset_raw, maxlen, tokenizer, training_mode, **mlm_kwargs)
+    train_dataset = process_dataset(train_dataset_raw, maxlen, tokenizer)
+    val_dataset = process_dataset(val_dataset_raw, maxlen, tokenizer)
     
     # Create iterators
     train_iterator = train_dataset.iter(batch_size=batch_size, drop_last_batch=True)
@@ -163,9 +91,7 @@ def create_validation_iterator(
     maxlen: int,
     tokenizer: Any,
     val_set_size: int,
-    batch_size: int,
-    training_mode: str = "clm",
-    **mlm_kwargs
+    batch_size: int
 ) -> Iterator[Dict]:
     """Create only the validation data iterator.
     
@@ -177,8 +103,6 @@ def create_validation_iterator(
         tokenizer: Tokenizer to use
         val_set_size: Number of samples for validation
         batch_size: Batch size for iterators
-        training_mode: Training mode ("clm" or "mlm")
-        **mlm_kwargs: MLM-specific parameters
         
     Returns:
         Validation iterator
@@ -191,7 +115,7 @@ def create_validation_iterator(
     val_dataset_raw = full_dataset.take(val_set_size)
     
     print("Processing validation dataset...")
-    val_dataset = process_dataset(val_dataset_raw, maxlen, tokenizer, training_mode, **mlm_kwargs)
+    val_dataset = process_dataset(val_dataset_raw, maxlen, tokenizer)
     
     # Create iterator
     val_iterator = val_dataset.iter(batch_size=batch_size, drop_last_batch=True)
@@ -206,9 +130,7 @@ def create_training_iterator(
     maxlen: int,
     tokenizer: Any,
     val_set_size: int,
-    batch_size: int,
-    training_mode: str = "clm",
-    **mlm_kwargs
+    batch_size: int
 ) -> Iterator[Dict]:
     """Create only the training data iterator.
     
@@ -220,8 +142,6 @@ def create_training_iterator(
         tokenizer: Tokenizer to use
         val_set_size: Number of samples for validation
         batch_size: Batch size for iterators
-        training_mode: Training mode ("clm" or "mlm")
-        **mlm_kwargs: MLM-specific parameters
         
     Returns:
         Training iterator
@@ -234,7 +154,7 @@ def create_training_iterator(
     train_dataset_raw = full_dataset.skip(val_set_size)
     
     print("Processing training dataset...")
-    train_dataset = process_dataset(train_dataset_raw, maxlen, tokenizer, training_mode, **mlm_kwargs)
+    train_dataset = process_dataset(train_dataset_raw, maxlen, tokenizer)
     
     # Create iterator
     train_iterator = train_dataset.iter(batch_size=batch_size, drop_last_batch=True)
@@ -242,37 +162,24 @@ def create_training_iterator(
     return train_iterator
 
 
-def prepare_batch(batch: Dict[str, Any], mesh: Any = None, training_mode: str = "clm") -> Dict[str, jnp.ndarray]:
+def prepare_batch(batch: Dict[str, Any], mesh: Any = None) -> jnp.ndarray:
     """Prepare a batch for training/evaluation.
     
     Args:
-        batch: Batch dictionary containing 'tokens' and optionally 'masked_tokens', 'mask_labels'
+        batch: Batch dictionary containing 'tokens'
         mesh: Optional JAX mesh for sharding
-        training_mode: Training mode ("clm" or "mlm")
         
     Returns:
-        Prepared batch dictionary with JAX arrays
+        Prepared batch tensor
     """
     from jax.sharding import NamedSharding, PartitionSpec as P
     import jax
     
-    result = {}
+    input_batch = jnp.array(batch['tokens'])
     
-    if training_mode == "clm":
-        input_batch = jnp.array(batch['tokens'])
-        if mesh is not None:
-            input_batch = jax.device_put(input_batch, NamedSharding(mesh, P('batch', None)))
-        result['tokens'] = input_batch
-    elif training_mode == "mlm":
-        # For MLM, we need both masked tokens and mask labels
-        masked_tokens = jnp.array(batch['masked_tokens'])
-        mask_labels = jnp.array(batch['mask_labels'])
-        
-        if mesh is not None:
-            masked_tokens = jax.device_put(masked_tokens, NamedSharding(mesh, P('batch', None)))
-            mask_labels = jax.device_put(mask_labels, NamedSharding(mesh, P('batch', None)))
-        
-        result['masked_tokens'] = masked_tokens
-        result['mask_labels'] = mask_labels
+    if mesh is not None:
+        # Shard the data across devices
+        sharded_batch = jax.device_put(input_batch, NamedSharding(mesh, P('batch', None)))
+        return sharded_batch
     
-    return result
+    return input_batch
