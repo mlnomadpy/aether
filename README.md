@@ -410,6 +410,12 @@ On a V100 GPU with the default configuration:
 - **Training Step**: ~1500 tokens/second
 - **Memory Usage**: ~8GB for 12-layer, 768-dim model
 
+On TPU v5-8 (Kaggle):
+- **YAT GPT Base**: ~132,000 tokens/second
+- **Linear GPT Model**: ~138,000 tokens/second
+
+*Performance metrics referenced from "Deep Learning 2.0.1" by Taha Bouhsine.*
+
 ### Optimization Tips
 
 1. **Batch Size**: Increase for better GPU utilization
