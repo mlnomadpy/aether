@@ -11,8 +11,8 @@ import os
 import json
 from pathlib import Path
 
-# Add the current directory to the path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add the parent directory to the path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def show_framework_overview():
     """Show the framework structure and improvements."""

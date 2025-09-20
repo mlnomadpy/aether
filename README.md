@@ -236,7 +236,7 @@ See `configs/bfloat16_example.json` for a complete BFloat16 training configurati
 #### Demo Script
 ```bash
 # Run BFloat16 demonstration
-python demo_bfloat16.py
+python demo/demo_bfloat16.py
 ```
 
 The demo script showcases:
