@@ -10,7 +10,7 @@ This script demonstrates:
 
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import jax.numpy as jnp
 import jax
