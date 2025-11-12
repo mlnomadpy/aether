@@ -19,6 +19,7 @@ class ModelConfig:
     feed_forward_dim: int = 768
     num_transformer_blocks: int = 12
     dropout_rate: float = 0.1
+    use_layer_norm: bool = True  # Whether to use layer normalization in linear architecture
 
 
 @dataclass
