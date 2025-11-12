@@ -41,6 +41,52 @@ def test_transformer_block_linear():
     assert outputs.shape == inputs.shape
 
 
+def test_transformer_block_linear_without_norm():
+    """Test transformer block with linear architecture without layer normalization."""
+    rngs = nnx.Rngs(42)
+    block = TransformerBlock(
+        embed_dim=256,
+        num_heads=4,
+        ff_dim=512,
+        rngs=rngs,
+        architecture="linear",
+        use_layer_norm=False
+    )
+    
+    # Verify that layer norm layers are None
+    assert block.layer_norm1 is None
+    assert block.layer_norm2 is None
+    
+    # Test forward pass
+    inputs = jnp.ones((2, 10, 256))  # batch_size=2, seq_len=10, embed_dim=256
+    outputs = block(inputs, training=True)
+    
+    assert outputs.shape == inputs.shape
+
+
+def test_transformer_block_linear_with_norm():
+    """Test transformer block with linear architecture with layer normalization."""
+    rngs = nnx.Rngs(42)
+    block = TransformerBlock(
+        embed_dim=256,
+        num_heads=4,
+        ff_dim=512,
+        rngs=rngs,
+        architecture="linear",
+        use_layer_norm=True
+    )
+    
+    # Verify that layer norm layers are created
+    assert block.layer_norm1 is not None
+    assert block.layer_norm2 is not None
+    
+    # Test forward pass
+    inputs = jnp.ones((2, 10, 256))  # batch_size=2, seq_len=10, embed_dim=256
+    outputs = block(inputs, training=True)
+    
+    assert outputs.shape == inputs.shape
+
+
 def test_minigpt_linear():
     """Test MiniGPT model with linear architecture."""
     rngs = nnx.Rngs(42)

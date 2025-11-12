@@ -21,6 +21,7 @@ class TransformerBlock(nnx.Module):
         rate: float = 0.1,
         mesh: Optional[object] = None,
         architecture: str = "linear",
+        use_layer_norm: bool = True,
         param_dtype: jnp.dtype = jnp.float32,
         compute_dtype: jnp.dtype = jnp.float32,
         **kwargs
@@ -35,6 +36,7 @@ class TransformerBlock(nnx.Module):
             rate: Dropout rate
             mesh: JAX mesh for sharding
             architecture: Architecture type ('linear' or 'yat')
+            use_layer_norm: Whether to use layer normalization (only for linear architecture)
             param_dtype: Data type for parameters
             compute_dtype: Data type for computations
             **kwargs: Additional architecture-specific arguments
@@ -44,6 +46,7 @@ class TransformerBlock(nnx.Module):
         self.ff_dim = ff_dim
         self.rate = rate
         self.architecture = architecture
+        self.use_layer_norm = use_layer_norm
         self.param_dtype = param_dtype
         self.compute_dtype = compute_dtype
         
@@ -84,7 +87,7 @@ class TransformerBlock(nnx.Module):
         
         # Feed-forward network based on architecture
         if architecture == "linear":
-            self._create_linear_ffn(embed_dim, ff_dim, kernel_init, bias_init, layer_norm_scale_init, rngs, param_dtype)
+            self._create_linear_ffn(embed_dim, ff_dim, kernel_init, bias_init, layer_norm_scale_init, rngs, param_dtype, use_layer_norm)
         elif architecture == "yat":
             self._create_yat_ffn(embed_dim, ff_dim, kernel_init, bias_init, alpha_init, layer_norm_scale_init, rngs, param_dtype)
         else:
@@ -92,16 +95,30 @@ class TransformerBlock(nnx.Module):
             
         self.dropout2 = nnx.Dropout(rate=rate, rngs=rngs)
     
-    def _create_linear_ffn(self, embed_dim, ff_dim, kernel_init, bias_init, layer_norm_scale_init, rngs, param_dtype):
+    def _create_linear_ffn(self, embed_dim, ff_dim, kernel_init, bias_init, layer_norm_scale_init, rngs, param_dtype, use_layer_norm):
         """Create linear feed-forward network."""
-        self.layer_norm1 = nnx.LayerNorm(
-            epsilon=1e-6,
-            num_features=embed_dim,
-            scale_init=layer_norm_scale_init,
-            bias_init=bias_init,
-            param_dtype=param_dtype,
-            rngs=rngs
-        )
+        # Conditionally create layer normalization layers
+        if use_layer_norm:
+            self.layer_norm1 = nnx.LayerNorm(
+                epsilon=1e-6,
+                num_features=embed_dim,
+                scale_init=layer_norm_scale_init,
+                bias_init=bias_init,
+                param_dtype=param_dtype,
+                rngs=rngs
+            )
+            self.layer_norm2 = nnx.LayerNorm(
+                epsilon=1e-6,
+                num_features=embed_dim,
+                scale_init=layer_norm_scale_init,
+                bias_init=bias_init,
+                param_dtype=param_dtype,
+                rngs=rngs
+            )
+        else:
+            self.layer_norm1 = None
+            self.layer_norm2 = None
+        
         self.linear1 = nnx.Linear(
             in_features=embed_dim,
             out_features=ff_dim,
@@ -114,14 +131,6 @@ class TransformerBlock(nnx.Module):
             in_features=ff_dim,
             out_features=embed_dim,
             kernel_init=kernel_init,
-            bias_init=bias_init,
-            param_dtype=param_dtype,
-            rngs=rngs
-        )
-        self.layer_norm2 = nnx.LayerNorm(
-            epsilon=1e-6,
-            num_features=embed_dim,
-            scale_init=layer_norm_scale_init,
             bias_init=bias_init,
             param_dtype=param_dtype,
             rngs=rngs
@@ -191,13 +200,21 @@ class TransformerBlock(nnx.Module):
         attention_output = self.dropout1(attention_output, deterministic=not training)
         
         if self.architecture == "linear":
-            # Linear architecture with layer normalization
-            out1 = self.layer_norm1(inputs + attention_output)
+            # Linear architecture with optional layer normalization
+            if self.use_layer_norm:
+                out1 = self.layer_norm1(inputs + attention_output)
+            else:
+                out1 = inputs + attention_output
+            
             ffn_output = self.linear1(out1)
             ffn_output = nnx.relu(ffn_output)
             ffn_output = self.linear2(ffn_output)
             ffn_output = self.dropout2(ffn_output, deterministic=not training)
-            return self.layer_norm2(out1 + ffn_output)
+            
+            if self.use_layer_norm:
+                return self.layer_norm2(out1 + ffn_output)
+            else:
+                return out1 + ffn_output
         
         elif self.architecture == "yat":
             # YAT architecture without explicit layer normalization
