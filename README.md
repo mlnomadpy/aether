@@ -112,7 +112,9 @@ Aether uses a hierarchical configuration system with support for JSON and YAML f
     "num_heads": 12,
     "feed_forward_dim": 768,
     "num_transformer_blocks": 12,
-    "dropout_rate": 0.1
+    "dropout_rate": 0.1,
+    "use_layer_norm": true,
+    "attention_block_reuse": 1
   },
   "training": {
     "batch_size": 32,
@@ -281,6 +283,42 @@ model = create_model("custom-model", config, rngs)
    - Uses YetAnotherTransformer components
    - Advanced non-linear mappings
    - Requires `nmn` package installation
+
+### Attention Block Reuse
+
+Aether supports reusing attention blocks multiple times during the forward pass, allowing the model to process inputs through the same transformer blocks repeatedly. This can be useful for iterative refinement tasks.
+
+**Configuration:**
+```json
+{
+  "model": {
+    "attention_block_reuse": 4  // Default: 1 (no reuse)
+  }
+}
+```
+
+**How it works:**
+- `attention_block_reuse=1` (default): Normal behavior - pass through blocks once
+- `attention_block_reuse=4`: Pass input through all transformer blocks, then take the output and pass it through all blocks again, repeating 4 times total
+- The final output after all reuses goes to the output layer for token prediction
+
+**Python API Example:**
+```python
+from aether.models import MiniGPT
+import flax.nnx as nnx
+
+rngs = nnx.Rngs(42)
+model = MiniGPT(
+    maxlen=1024,
+    vocab_size=50257,
+    embed_dim=768,
+    num_heads=12,
+    feed_forward_dim=768,
+    num_transformer_blocks=12,
+    rngs=rngs,
+    attention_block_reuse=4  # Reuse blocks 4 times
+)
+```
 
 ### Adding Custom Models
 

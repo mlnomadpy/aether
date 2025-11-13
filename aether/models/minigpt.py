@@ -26,6 +26,7 @@ class MiniGPT(BaseModel):
         mesh: Optional[object] = None,
         param_dtype: jnp.dtype = jnp.float32,
         compute_dtype: jnp.dtype = jnp.float32,
+        attention_block_reuse: int = 1,
         **kwargs
     ):
         """Initialize MiniGPT model.
@@ -42,6 +43,7 @@ class MiniGPT(BaseModel):
             mesh: JAX mesh for sharding
             param_dtype: Data type for parameters
             compute_dtype: Data type for computations
+            attention_block_reuse: Number of times to reuse attention blocks (1 = no reuse)
             **kwargs: Additional arguments passed to transformer blocks
         """
         self.maxlen = maxlen
@@ -53,6 +55,7 @@ class MiniGPT(BaseModel):
         self.architecture = architecture
         self.param_dtype = param_dtype
         self.compute_dtype = compute_dtype
+        self.attention_block_reuse = attention_block_reuse
         
         # Embedding layer
         self.embedding_layer = TokenAndPositionEmbedding(
@@ -60,7 +63,7 @@ class MiniGPT(BaseModel):
         )
         
         # Transformer blocks
-        self.transformer_blocks = [
+        self.transformer_blocks = nnx.List([
             TransformerBlock(
                 embed_dim, 
                 num_heads, 
@@ -73,7 +76,7 @@ class MiniGPT(BaseModel):
                 **kwargs
             )
             for _ in range(num_transformer_blocks)
-        ]
+        ])
         
         # Output layer
         if mesh is not None:
@@ -123,8 +126,12 @@ class MiniGPT(BaseModel):
             Logits of shape (batch_size, sequence_length, vocab_size)
         """
         x = self.embedding_layer(inputs)
-        for transformer_block in self.transformer_blocks:
-            x = transformer_block(x, training=training)
+        
+        # Apply transformer blocks with reuse
+        for _ in range(self.attention_block_reuse):
+            for transformer_block in self.transformer_blocks:
+                x = transformer_block(x, training=training)
+        
         return self.output_layer(x)
     
     def get_config(self) -> Dict[str, Any]:
@@ -140,7 +147,8 @@ class MiniGPT(BaseModel):
             'num_heads': self.num_heads,
             'feed_forward_dim': self.feed_forward_dim,
             'num_transformer_blocks': self.num_transformer_blocks,
-            'architecture': self.architecture
+            'architecture': self.architecture,
+            'attention_block_reuse': self.attention_block_reuse
         }
     
     @classmethod
