@@ -9,7 +9,8 @@
     "feed_forward_dim": 768,
     "num_transformer_blocks": 12,
     "dropout_rate": 0.1,
-    "use_layer_norm": true
+    "use_layer_norm": true,
+    "attention_block_reuse": 1
   },
   "training": {
     "batch_size": 64,

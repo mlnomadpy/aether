@@ -20,6 +20,7 @@ class ModelConfig:
     num_transformer_blocks: int = 12
     dropout_rate: float = 0.1
     use_layer_norm: bool = True  # Whether to use layer normalization in linear architecture
+    attention_block_reuse: int = 1  # Number of times to reuse attention blocks (1 = no reuse)
 
 
 @dataclass

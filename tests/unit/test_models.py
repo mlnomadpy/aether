@@ -129,5 +129,49 @@ def test_minigpt_config():
         assert retrieved_config[key] == value
 
 
+def test_minigpt_attention_block_reuse():
+    """Test MiniGPT with attention block reuse functionality."""
+    rngs = nnx.Rngs(42)
+    
+    # Test with reuse = 1 (default, no reuse)
+    model1 = MiniGPT(
+        maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        num_heads=4,
+        feed_forward_dim=512,
+        num_transformer_blocks=2,
+        rngs=rngs,
+        architecture="linear",
+        attention_block_reuse=1
+    )
+    
+    inputs = jnp.array([[1, 2, 3, 4, 5]])
+    outputs1 = model1(inputs, training=True)
+    assert outputs1.shape == (1, 5, 1000)
+    
+    # Test with reuse = 3
+    rngs2 = nnx.Rngs(42)
+    model2 = MiniGPT(
+        maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        num_heads=4,
+        feed_forward_dim=512,
+        num_transformer_blocks=2,
+        rngs=rngs2,
+        architecture="linear",
+        attention_block_reuse=3
+    )
+    
+    outputs2 = model2(inputs, training=True)
+    assert outputs2.shape == (1, 5, 1000)
+    
+    # Verify config contains attention_block_reuse
+    config = model2.get_config()
+    assert "attention_block_reuse" in config
+    assert config["attention_block_reuse"] == 3
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
