@@ -66,12 +66,33 @@ class Trainer:
             self._param_dtype = jnp.bfloat16
             self._compute_dtype = jnp.bfloat16
             print("Using BFloat16 precision for training")
+        elif precision == "float16":
+            # Configure JAX to use float16 for computations
+            from jax import config as jax_config
+            jax_config.update('jax_default_matmul_precision', 'float16')
+            
+            # Set the default dtype for parameters
+            self._param_dtype = jnp.float16
+            self._compute_dtype = jnp.float16
+            print("Using Float16 precision for training")
         elif precision == "float32":
             self._param_dtype = jnp.float32
             self._compute_dtype = jnp.float32
             print("Using Float32 precision for training")
+        elif precision == "float64":
+            # Enable 64-bit precision in JAX (disabled by default)
+            from jax import config as jax_config
+            jax_config.update("jax_enable_x64", True)
+            
+            # Set the default dtype for parameters
+            self._param_dtype = jnp.float64
+            self._compute_dtype = jnp.float64
+            print("Using Float64 precision for training")
         else:
-            raise ValueError(f"Unsupported precision: {precision}. Options are 'float32' or 'bfloat16'")
+            raise ValueError(
+                f"Unsupported precision: {precision}. "
+                f"Options are 'float16', 'bfloat16', 'float32', or 'float64'"
+            )
 
     def _create_model(self) -> nnx.Module:
         """Create model from configuration."""

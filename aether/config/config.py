@@ -42,7 +42,7 @@ class TrainingConfig:
     momentum: float = 0.9  # For optimizers that support momentum (SGD, etc.)
     weight_decay: float = 0.0  # Weight decay for regularization
     # Precision settings
-    precision: str = "float32"  # Options: "float32", "bfloat16"
+    precision: str = "float32"  # Options: "float16", "bfloat16", "float32", "float64"
 
 
 @dataclass
