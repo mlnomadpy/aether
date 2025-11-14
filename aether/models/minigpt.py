@@ -63,7 +63,7 @@ class MiniGPT(BaseModel):
         )
         
         # Transformer blocks
-        self.transformer_blocks = nnx.List([
+        self.transformer_blocks = [
             TransformerBlock(
                 embed_dim, 
                 num_heads, 
@@ -76,7 +76,7 @@ class MiniGPT(BaseModel):
                 **kwargs
             )
             for _ in range(num_transformer_blocks)
-        ])
+        ]
         
         # Output layer
         if mesh is not None:
