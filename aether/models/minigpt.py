@@ -10,6 +10,15 @@ from .transformer_block import TransformerBlock
 from .embeddings import TokenAndPositionEmbedding
 
 
+# Compatibility check for nnx.List (not available in Flax < 0.11.0)
+def _create_module_list(modules):
+    """Create a list of modules compatible with the current Flax version."""
+    if hasattr(nnx, 'List'):
+        return nnx.List(modules)
+    else:
+        return modules
+
+
 class MiniGPT(BaseModel):
     """A miniGPT transformer model with configurable architecture."""
     
@@ -63,7 +72,7 @@ class MiniGPT(BaseModel):
         )
         
         # Transformer blocks
-        self.transformer_blocks = [
+        self.transformer_blocks = _create_module_list([
             TransformerBlock(
                 embed_dim, 
                 num_heads, 
@@ -76,7 +85,7 @@ class MiniGPT(BaseModel):
                 **kwargs
             )
             for _ in range(num_transformer_blocks)
-        ]
+        ])
         
         # Output layer
         if mesh is not None:
