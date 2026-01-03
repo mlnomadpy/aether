@@ -1,6 +1,23 @@
 """Aether: Modular JAX/Flax Transformer Training Framework."""
 
+import re
 from .config import Config, ModelConfig, TrainingConfig, DataConfig, LoggingConfig
+
+
+def _is_jax_flax_error(error_msg: str) -> bool:
+    """Check if an error message is about missing JAX or Flax.
+    
+    Uses word boundary matching to avoid false positives
+    (e.g., 'relaxation' should not match 'lax').
+    """
+    error_lower = error_msg.lower()
+    # Match 'jax' or 'flax' as complete module names (with word boundaries or quotes)
+    # Typical error: "No module named 'jax'" or "No module named 'flax.nnx'"
+    return bool(re.search(r"['\"]jax['\"\.]", error_lower) or 
+                re.search(r"['\"]flax['\"\.]", error_lower) or
+                re.search(r"\bjax\b", error_lower) or
+                re.search(r"\bflax\b", error_lower))
+
 
 # Try to import training components, but make them optional
 try:
@@ -8,8 +25,7 @@ try:
     _TRAINING_AVAILABLE = True
 except ImportError as e:
     # Check if the error is specifically about JAX or Flax
-    error_msg = str(e).lower()
-    if 'jax' in error_msg or 'flax' in error_msg:
+    if _is_jax_flax_error(str(e)):
         _TRAINING_AVAILABLE = False
         # Create placeholder classes/functions that raise informative errors
         class Trainer:

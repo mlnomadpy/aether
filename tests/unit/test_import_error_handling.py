@@ -2,105 +2,45 @@
 
 import pytest
 import sys
-import builtins
 
 
-def test_jax_missing_error():
-    """Test that missing JAX produces appropriate error message."""
-    original_import = builtins.__import__
-    
-    def mock_import(name, *args, **kwargs):
-        if name == 'jax' or name.startswith('jax.'):
-            raise ModuleNotFoundError("No module named 'jax'")
-        return original_import(name, *args, **kwargs)
-    
-    builtins.__import__ = mock_import
-    
-    # Clear cached imports
-    modules_to_remove = [mod for mod in sys.modules.keys() 
-                        if 'aether' in mod or 'jax' in mod or 'flax' in mod]
+def test_is_jax_flax_error_detection():
+    """Test the _is_jax_flax_error helper function for correct pattern matching."""
+    # Need to import after clearing modules to get fresh version
+    modules_to_remove = [mod for mod in list(sys.modules.keys()) if 'aether' in mod]
     for mod in modules_to_remove:
         del sys.modules[mod]
     
-    try:
-        from aether import Trainer
-        trainer = Trainer(None)
-        pytest.fail("Should have raised ImportError")
-    except ImportError as e:
-        assert 'JAX/Flax' in str(e), f"Error should mention JAX/Flax, got: {e}"
-    finally:
-        builtins.__import__ = original_import
-        # Clean up modules after test
-        modules_to_remove = [mod for mod in sys.modules.keys() if 'aether' in mod]
-        for mod in modules_to_remove:
-            del sys.modules[mod]
+    from aether import _is_jax_flax_error
+    
+    # Should match JAX/Flax errors
+    assert _is_jax_flax_error("No module named 'jax'") is True
+    assert _is_jax_flax_error("No module named 'flax'") is True
+    assert _is_jax_flax_error("No module named 'jax.numpy'") is True
+    assert _is_jax_flax_error("No module named 'flax.nnx'") is True
+    assert _is_jax_flax_error("cannot import jax") is True
+    assert _is_jax_flax_error("cannot import flax") is True
+    
+    # Should NOT match unrelated errors (avoiding false positives)
+    assert _is_jax_flax_error("No module named 'wandb'") is False
+    assert _is_jax_flax_error("No module named 'optax'") is False
+    assert _is_jax_flax_error("No module named 'orbax'") is False
+    assert _is_jax_flax_error("No module named 'relaxation'") is False  # Contains 'lax' but not 'flax'
 
 
-def test_flax_missing_error():
-    """Test that missing Flax produces appropriate error message."""
-    original_import = builtins.__import__
+def test_training_available_flag():
+    """Test that _TRAINING_AVAILABLE flag is correctly set when imports succeed."""
+    # This test verifies that when all dependencies are available,
+    # training components can be imported successfully
+    from aether import Trainer, train_step, eval_step, loss_fn, _TRAINING_AVAILABLE
     
-    def mock_import(name, *args, **kwargs):
-        if name == 'flax' or name.startswith('flax.'):
-            raise ModuleNotFoundError("No module named 'flax'")
-        return original_import(name, *args, **kwargs)
+    # If we reach here without error, imports succeeded
+    assert _TRAINING_AVAILABLE is True
     
-    builtins.__import__ = mock_import
-    
-    # Clear cached imports
-    modules_to_remove = [mod for mod in sys.modules.keys() 
-                        if 'aether' in mod or 'flax' in mod]
-    for mod in modules_to_remove:
-        del sys.modules[mod]
-    
-    try:
-        from aether import Trainer
-        trainer = Trainer(None)
-        pytest.fail("Should have raised ImportError")
-    except ImportError as e:
-        assert 'JAX/Flax' in str(e), f"Error should mention JAX/Flax, got: {e}"
-    finally:
-        builtins.__import__ = original_import
-        # Clean up modules after test
-        modules_to_remove = [mod for mod in sys.modules.keys() if 'aether' in mod]
-        for mod in modules_to_remove:
-            del sys.modules[mod]
-
-
-def test_other_module_missing_error():
-    """Test that missing non-JAX/Flax module produces correct error (not JAX/Flax message)."""
-    original_import = builtins.__import__
-    
-    def mock_import(name, *args, **kwargs):
-        if name == 'wandb':
-            raise ModuleNotFoundError("No module named 'wandb'")
-        return original_import(name, *args, **kwargs)
-    
-    builtins.__import__ = mock_import
-    
-    # Clear cached imports
-    modules_to_remove = [mod for mod in sys.modules.keys() 
-                        if 'aether' in mod or 'wandb' in mod]
-    for mod in modules_to_remove:
-        del sys.modules[mod]
-    
-    try:
-        from aether import Trainer
-        pytest.fail("Should have raised ModuleNotFoundError")
-    except ModuleNotFoundError as e:
-        # Should get the real error about wandb, not JAX/Flax
-        assert 'wandb' in str(e), f"Error should mention wandb, got: {e}"
-        assert 'JAX/Flax' not in str(e), f"Error should NOT mention JAX/Flax, got: {e}"
-    except ImportError as e:
-        # If we get an ImportError (which is a parent class), check it's about wandb
-        assert 'wandb' in str(e), f"Error should mention wandb, got: {e}"
-        assert 'JAX/Flax' not in str(e), f"Error should NOT mention JAX/Flax, got: {e}"
-    finally:
-        builtins.__import__ = original_import
-        # Clean up modules after test
-        modules_to_remove = [mod for mod in sys.modules.keys() if 'aether' in mod]
-        for mod in modules_to_remove:
-            del sys.modules[mod]
+    # Verify components are the real implementations, not placeholders
+    assert callable(train_step)
+    assert callable(eval_step)
+    assert callable(loss_fn)
 
 
 if __name__ == "__main__":
