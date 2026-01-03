@@ -173,5 +173,102 @@ def test_minigpt_attention_block_reuse():
     assert config["attention_block_reuse"] == 3
 
 
+def test_transformer_block_yat():
+    """Test transformer block with YAT architecture."""
+    pytest.importorskip("nmn", reason="nmn package required for YAT architecture")
+    
+    rngs = nnx.Rngs(42)
+    block = TransformerBlock(
+        embed_dim=256,
+        num_heads=4,
+        ff_dim=512,
+        rngs=rngs,
+        architecture="yat",
+        residual_scale=0.1
+    )
+    
+    # Test forward pass
+    inputs = jnp.ones((2, 10, 256))
+    outputs = block(inputs, training=True)
+    
+    assert outputs.shape == inputs.shape
+    assert not jnp.any(jnp.isnan(outputs)), "YAT block output contains NaN"
+
+
+def test_minigpt_yat():
+    """Test MiniGPT model with YAT architecture."""
+    pytest.importorskip("nmn", reason="nmn package required for YAT architecture")
+    
+    rngs = nnx.Rngs(42)
+    model = MiniGPT(
+        maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        num_heads=4,
+        feed_forward_dim=512,
+        num_transformer_blocks=4,
+        rngs=rngs,
+        architecture="yat"
+    )
+    
+    # Test forward pass
+    inputs = jnp.array([[1, 2, 3, 4, 5]])
+    outputs = model(inputs, training=True)
+    
+    assert outputs.shape == (1, 5, 1000)
+    assert not jnp.any(jnp.isnan(outputs)), "YAT model output contains NaN"
+
+
+def test_minigpt_yat_training_stability():
+    """Test that YAT architecture training is stable (no NaN loss)."""
+    pytest.importorskip("nmn", reason="nmn package required for YAT architecture")
+    import optax
+    
+    rngs = nnx.Rngs(42)
+    model = MiniGPT(
+        maxlen=64,
+        vocab_size=1000,
+        embed_dim=128,
+        num_heads=4,
+        feed_forward_dim=256,
+        num_transformer_blocks=4,
+        rngs=rngs,
+        architecture="yat"
+    )
+    
+    # Create a simple training setup
+    import jax
+    key = jax.random.PRNGKey(0)
+    batch = jax.random.randint(key, (2, 32), 0, 1000)
+    
+    # Simple loss function
+    def loss_fn(model, batch):
+        logits = model(batch, training=True)
+        targets = batch[:, 1:]
+        logits = logits[:, :-1, :]
+        loss = optax.softmax_cross_entropy_with_integer_labels(
+            logits.reshape(-1, logits.shape[-1]),
+            targets.reshape(-1)
+        )
+        return jnp.mean(loss)
+    
+    # Test a few training steps
+    optimizer_fn = optax.adam(0.001)
+    opt_state = optimizer_fn.init(nnx.state(model, nnx.Param))
+    
+    for step in range(10):
+        grad_fn = nnx.value_and_grad(loss_fn)
+        loss, grads = grad_fn(model, batch)
+        
+        params = nnx.state(model, nnx.Param)
+        grad_state = nnx.state(grads, nnx.Param)
+        updates, opt_state = optimizer_fn.update(grad_state, opt_state, params)
+        new_params = optax.apply_updates(params, updates)
+        nnx.update(model, new_params)
+        
+        assert not jnp.isnan(loss), f"YAT training produced NaN loss at step {step}"
+        assert loss < 1e6, f"YAT training loss exploded at step {step}: {loss}"
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

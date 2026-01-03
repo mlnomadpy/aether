@@ -66,6 +66,11 @@ class MiniGPT(BaseModel):
         self.compute_dtype = compute_dtype
         self.attention_block_reuse = attention_block_reuse
         
+        # Calculate residual scale for YAT architecture stability
+        # Using a small fixed scale (0.1) helps prevent activation explosion
+        # without layer normalization. This is similar to ReZero/Fixup initialization.
+        residual_scale = 0.1 if architecture == "yat" else 1.0
+        
         # Embedding layer
         self.embedding_layer = TokenAndPositionEmbedding(
             maxlen, vocab_size, embed_dim, rngs=rngs, param_dtype=param_dtype
@@ -82,6 +87,7 @@ class MiniGPT(BaseModel):
                 architecture=architecture,
                 param_dtype=param_dtype,
                 compute_dtype=compute_dtype,
+                residual_scale=residual_scale,
                 **kwargs
             )
             for _ in range(num_transformer_blocks)
