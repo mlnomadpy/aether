@@ -11,6 +11,8 @@ def test_is_jax_flax_error_detection():
     for mod in modules_to_remove:
         del sys.modules[mod]
     
+    # Import the internal function for testing pattern matching
+    # This is acceptable for unit testing internal logic
     from aether import _is_jax_flax_error
     
     # Should match JAX/Flax errors
@@ -28,14 +30,12 @@ def test_is_jax_flax_error_detection():
     assert _is_jax_flax_error("No module named 'relaxation'") is False  # Contains 'lax' but not 'flax'
 
 
-def test_training_available_flag():
-    """Test that _TRAINING_AVAILABLE flag is correctly set when imports succeed."""
-    # This test verifies that when all dependencies are available,
-    # training components can be imported successfully
-    from aether import Trainer, train_step, eval_step, loss_fn, _TRAINING_AVAILABLE
+def test_training_available_api():
+    """Test that is_training_available() correctly reports training status."""
+    from aether import is_training_available, Trainer, train_step, eval_step, loss_fn
     
-    # If we reach here without error, imports succeeded
-    assert _TRAINING_AVAILABLE is True
+    # When all dependencies are available, training should be available
+    assert is_training_available() is True
     
     # Verify components are the real implementations, not placeholders
     assert callable(train_step)

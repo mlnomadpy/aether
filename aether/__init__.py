@@ -11,12 +11,9 @@ def _is_jax_flax_error(error_msg: str) -> bool:
     (e.g., 'relaxation' should not match 'lax').
     """
     error_lower = error_msg.lower()
-    # Match 'jax' or 'flax' as complete module names (with word boundaries or quotes)
-    # Typical error: "No module named 'jax'" or "No module named 'flax.nnx'"
-    return bool(re.search(r"['\"]jax['\"\.]", error_lower) or 
-                re.search(r"['\"]flax['\"\.]", error_lower) or
-                re.search(r"\bjax\b", error_lower) or
-                re.search(r"\bflax\b", error_lower))
+    # Match 'jax' or 'flax' as complete module names
+    # Pattern matches: 'jax', "jax", jax., 'jax.xxx' etc, or jax/flax as standalone words
+    return bool(re.search(r"\b(jax|flax)\b", error_lower))
 
 
 # Try to import training components, but make them optional
@@ -56,7 +53,18 @@ __all__ = [
     "Trainer", 
     "train_step", 
     "eval_step", 
-    "loss_fn"
+    "loss_fn",
+    "is_training_available"
 ]
+
+
+def is_training_available() -> bool:
+    """Check if training functionality is available.
+    
+    Returns:
+        True if JAX/Flax and training components are available, False otherwise.
+    """
+    return _TRAINING_AVAILABLE
+
 
 __version__ = "0.1.0"
