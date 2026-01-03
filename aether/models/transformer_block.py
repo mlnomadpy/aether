@@ -24,6 +24,7 @@ class TransformerBlock(nnx.Module):
         use_layer_norm: bool = True,
         param_dtype: jnp.dtype = jnp.float32,
         compute_dtype: jnp.dtype = jnp.float32,
+        residual_scale: float = 1.0,
         **kwargs
     ):
         """Initialize transformer block.
@@ -39,6 +40,7 @@ class TransformerBlock(nnx.Module):
             use_layer_norm: Whether to use layer normalization (only for linear architecture)
             param_dtype: Data type for parameters
             compute_dtype: Data type for computations
+            residual_scale: Scale factor for residual connections (for YAT architecture stability)
             **kwargs: Additional architecture-specific arguments
         """
         self.embed_dim = embed_dim
@@ -48,6 +50,7 @@ class TransformerBlock(nnx.Module):
         self.architecture = architecture
         self.use_layer_norm = use_layer_norm
         self.param_dtype = param_dtype
+        self.residual_scale = residual_scale
         self.compute_dtype = compute_dtype
         
         # Set up partitioning if mesh is provided
@@ -218,11 +221,12 @@ class TransformerBlock(nnx.Module):
         
         elif self.architecture == "yat":
             # YAT architecture without explicit layer normalization
-            out1 = inputs + attention_output
+            # Uses scaled residual connections for training stability
+            out1 = inputs + self.residual_scale * attention_output
             ffn_output = self.non_linear1(out1)
             ffn_output = self.out_linear1(ffn_output)
             ffn_output = self.dropout2(ffn_output, deterministic=not training)
-            return out1 + ffn_output
+            return out1 + self.residual_scale * ffn_output
         
         else:
             raise ValueError(f"Unknown architecture: {self.architecture}")
