@@ -1,8 +1,10 @@
 """Unit tests for models."""
 
 import pytest
+import jax
 import jax.numpy as jnp
 import flax.nnx as nnx
+import optax
 from aether.models import MiniGPT, TransformerBlock, TokenAndPositionEmbedding
 
 
@@ -222,7 +224,6 @@ def test_minigpt_yat():
 def test_minigpt_yat_training_stability():
     """Test that YAT architecture training is stable (no NaN loss)."""
     pytest.importorskip("nmn", reason="nmn package required for YAT architecture")
-    import optax
     
     rngs = nnx.Rngs(42)
     model = MiniGPT(
@@ -237,7 +238,6 @@ def test_minigpt_yat_training_stability():
     )
     
     # Create a simple training setup
-    import jax
     key = jax.random.PRNGKey(0)
     batch = jax.random.randint(key, (2, 32), 0, 1000)
     
