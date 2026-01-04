@@ -80,8 +80,8 @@ class Me3zaTransformerBlock(nnx.Module):
         self.param_dtype = param_dtype
         self.compute_dtype = compute_dtype
         
-        # Store rngs for dropout during training
-        self.rngs = rngs
+        # Store rngs for dropout during training (required by nmn's RotaryYatAttention)
+        self._rngs = rngs
         
         # Set up partitioning if mesh is provided
         if mesh is not None:
@@ -161,7 +161,8 @@ class Me3zaTransformerBlock(nnx.Module):
         # Pre-Norm Architecture
         # x = x + Drop(Attn(Norm(x)))
         h = self.norm1(x)
-        attn_out = self.attn(h, deterministic=not training, rngs=self.rngs if training else None)
+        # nmn's RotaryYatAttention requires rngs when deterministic=False for dropout
+        attn_out = self.attn(h, deterministic=not training, rngs=self._rngs if training else None)
         x = x + self.dropout1(attn_out, deterministic=not training)
         
         # x = x + Drop(FFN(Norm(x)))
@@ -286,6 +287,7 @@ class Me3za(BaseModel):
         # x: [Batch, Seq, Dim]
         # emb: [Vocab, Dim]
         # logits = x @ emb.T -> [Batch, Seq, Vocab]
+        # Note: Using [...] syntax to access Variable values (modern Flax API, replaces .value)
         embedding_weights = self.embedding_layer.token_emb.embedding[...]
         logits = x @ embedding_weights.T
         

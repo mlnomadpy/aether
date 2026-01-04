@@ -206,8 +206,7 @@ def test_minigpt_attention_block_reuse():
 
 # --- Me3za Architecture Tests ---
 
-@pytest.fixture
-def nmn_available():
+def _nmn_available():
     """Check if nmn package is available."""
     try:
         from nmn.nnx.attention import RotaryYatAttention
@@ -217,11 +216,9 @@ def nmn_available():
         return False
 
 
-def test_me3za_model(nmn_available):
+@pytest.mark.skipif(not _nmn_available(), reason="nmn package not available")
+def test_me3za_model():
     """Test Me3za model with Rotary YAT Performer attention."""
-    if not nmn_available:
-        pytest.skip("nmn package not available")
-    
     from aether.models import Me3za
     
     rngs = nnx.Rngs(42)
@@ -244,11 +241,9 @@ def test_me3za_model(nmn_available):
     assert outputs.shape == (1, 5, 1000)  # (batch_size, seq_len, vocab_size)
 
 
-def test_me3za_embed(nmn_available):
+@pytest.mark.skipif(not _nmn_available(), reason="nmn package not available")
+def test_me3za_embed():
     """Test Me3za embed method for sentence embeddings."""
-    if not nmn_available:
-        pytest.skip("nmn package not available")
-    
     from aether.models import Me3za
     
     rngs = nnx.Rngs(42)
@@ -268,11 +263,9 @@ def test_me3za_embed(nmn_available):
     assert embeddings.shape == (1, 5, 256)  # (batch_size, seq_len, embed_dim)
 
 
-def test_me3za_config(nmn_available):
+@pytest.mark.skipif(not _nmn_available(), reason="nmn package not available")
+def test_me3za_config():
     """Test Me3za configuration methods."""
-    if not nmn_available:
-        pytest.skip("nmn package not available")
-    
     from aether.models import Me3za
     
     rngs = nnx.Rngs(42)
@@ -300,11 +293,9 @@ def test_me3za_config(nmn_available):
     assert retrieved_config['architecture'] == 'me3za'
 
 
-def test_me3za_transformer_block(nmn_available):
+@pytest.mark.skipif(not _nmn_available(), reason="nmn package not available")
+def test_me3za_transformer_block():
     """Test Me3zaTransformerBlock with Rotary YAT attention."""
-    if not nmn_available:
-        pytest.skip("nmn package not available")
-    
     from aether.models import Me3zaTransformerBlock
     
     rngs = nnx.Rngs(42)
@@ -324,11 +315,9 @@ def test_me3za_transformer_block(nmn_available):
     assert outputs.shape == inputs.shape
 
 
-def test_me3za_without_performer(nmn_available):
+@pytest.mark.skipif(not _nmn_available(), reason="nmn package not available")
+def test_me3za_without_performer():
     """Test Me3za model without Performer mode (standard attention)."""
-    if not nmn_available:
-        pytest.skip("nmn package not available")
-    
     from aether.models import Me3za
     
     rngs = nnx.Rngs(42)
@@ -350,11 +339,9 @@ def test_me3za_without_performer(nmn_available):
     assert outputs.shape == (1, 5, 1000)
 
 
-def test_me3za_training_mode(nmn_available):
+@pytest.mark.skipif(not _nmn_available(), reason="nmn package not available")
+def test_me3za_training_mode():
     """Test Me3za model in training mode."""
-    if not nmn_available:
-        pytest.skip("nmn package not available")
-    
     from aether.models import Me3za
     
     rngs = nnx.Rngs(42)
