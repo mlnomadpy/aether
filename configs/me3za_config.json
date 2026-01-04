@@ -1,0 +1,45 @@
+{
+  "model": {
+    "name": "me3za",
+    "architecture": "me3za",
+    "maxlen": 1024,
+    "vocab_size": 50265,
+    "embed_dim": 768,
+    "num_heads": 12,
+    "feed_forward_dim": 3072,
+    "num_transformer_blocks": 12,
+    "dropout_rate": 0.1,
+    "use_performer": true
+  },
+  "training": {
+    "batch_size": 32,
+    "precision": "bfloat16",
+    "learning_rate": 0.0001,
+    "max_tokens_to_process": 5000000,
+    "eval_interval": 500,
+    "eval_steps": 50,
+    "val_set_size": 2000,
+    "checkpoint_interval": 5000,
+    "optimizer": "adamw",
+    "lr_scheduler": "cosine",
+    "lr_scheduler_alpha": 0.1,
+    "lr_scheduler_warmup_steps": 1000,
+    "weight_decay": 0.01
+  },
+  "data": {
+    "dataset_name": "HuggingFaceFW/fineweb",
+    "split": "train",
+    "streaming": true,
+    "tokenizer_name": "roberta-base"
+  },
+  "logging": {
+    "wandb_project": "me3za-training",
+    "checkpoint_dir": "./me3za_checkpoints",
+    "log_level": "INFO",
+    "log_file": null
+  },
+  "device": {
+    "mesh_shape": null,
+    "auto_detect_mesh": true
+  }
+}
