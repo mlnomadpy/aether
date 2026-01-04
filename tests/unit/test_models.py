@@ -4,6 +4,7 @@ import pytest
 import jax.numpy as jnp
 import flax.nnx as nnx
 from aether.models import MiniGPT, TransformerBlock, TokenAndPositionEmbedding
+from aether.models import RMSNorm, TokenOnlyEmbedding
 
 
 def test_token_position_embedding():
@@ -11,6 +12,36 @@ def test_token_position_embedding():
     rngs = nnx.Rngs(42)
     embedding = TokenAndPositionEmbedding(
         maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        rngs=rngs
+    )
+    
+    # Test forward pass
+    inputs = jnp.array([[1, 2, 3, 4, 5]])  # batch_size=1, seq_len=5
+    outputs = embedding(inputs)
+    
+    assert outputs.shape == (1, 5, 256)
+
+
+def test_rms_norm():
+    """Test RMSNorm layer."""
+    rngs = nnx.Rngs(42)
+    norm = RMSNorm(dim=256, rngs=rngs)
+    
+    # Test forward pass
+    inputs = jnp.ones((2, 10, 256))  # batch_size=2, seq_len=10, embed_dim=256
+    outputs = norm(inputs)
+    
+    assert outputs.shape == inputs.shape
+    # RMSNorm should normalize values
+    # With all ones input and unit weights, output should be normalized
+
+
+def test_token_only_embedding():
+    """Test TokenOnlyEmbedding layer."""
+    rngs = nnx.Rngs(42)
+    embedding = TokenOnlyEmbedding(
         vocab_size=1000,
         embed_dim=256,
         rngs=rngs
@@ -171,6 +202,182 @@ def test_minigpt_attention_block_reuse():
     config = model2.get_config()
     assert "attention_block_reuse" in config
     assert config["attention_block_reuse"] == 3
+
+
+# --- Me3za Architecture Tests ---
+
+@pytest.fixture
+def nmn_available():
+    """Check if nmn package is available."""
+    try:
+        from nmn.nnx.attention import RotaryYatAttention
+        from nmn.nnx.nmn import YatNMN
+        return True
+    except ImportError:
+        return False
+
+
+def test_me3za_model(nmn_available):
+    """Test Me3za model with Rotary YAT Performer attention."""
+    if not nmn_available:
+        pytest.skip("nmn package not available")
+    
+    from aether.models import Me3za
+    
+    rngs = nnx.Rngs(42)
+    model = Me3za(
+        maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        num_heads=4,
+        feed_forward_dim=512,
+        num_transformer_blocks=2,
+        rngs=rngs,
+        use_performer=True,
+        dropout_rate=0.1
+    )
+    
+    # Test forward pass
+    inputs = jnp.array([[1, 2, 3, 4, 5]])  # batch_size=1, seq_len=5
+    outputs = model(inputs, training=False)
+    
+    assert outputs.shape == (1, 5, 1000)  # (batch_size, seq_len, vocab_size)
+
+
+def test_me3za_embed(nmn_available):
+    """Test Me3za embed method for sentence embeddings."""
+    if not nmn_available:
+        pytest.skip("nmn package not available")
+    
+    from aether.models import Me3za
+    
+    rngs = nnx.Rngs(42)
+    model = Me3za(
+        maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        num_heads=4,
+        feed_forward_dim=512,
+        num_transformer_blocks=2,
+        rngs=rngs
+    )
+    
+    inputs = jnp.array([[1, 2, 3, 4, 5]])
+    embeddings = model.embed(inputs, training=False)
+    
+    assert embeddings.shape == (1, 5, 256)  # (batch_size, seq_len, embed_dim)
+
+
+def test_me3za_config(nmn_available):
+    """Test Me3za configuration methods."""
+    if not nmn_available:
+        pytest.skip("nmn package not available")
+    
+    from aether.models import Me3za
+    
+    rngs = nnx.Rngs(42)
+    config = {
+        "maxlen": 128,
+        "vocab_size": 1000,
+        "embed_dim": 256,
+        "num_heads": 4,
+        "feed_forward_dim": 512,
+        "num_transformer_blocks": 2,
+        "use_performer": True,
+        "dropout_rate": 0.1
+    }
+    
+    model = Me3za.from_config(config, rngs)
+    retrieved_config = model.get_config()
+    
+    # Check that configurations match
+    assert retrieved_config['maxlen'] == config['maxlen']
+    assert retrieved_config['vocab_size'] == config['vocab_size']
+    assert retrieved_config['embed_dim'] == config['embed_dim']
+    assert retrieved_config['num_heads'] == config['num_heads']
+    assert retrieved_config['feed_forward_dim'] == config['feed_forward_dim']
+    assert retrieved_config['num_transformer_blocks'] == config['num_transformer_blocks']
+    assert retrieved_config['architecture'] == 'me3za'
+
+
+def test_me3za_transformer_block(nmn_available):
+    """Test Me3zaTransformerBlock with Rotary YAT attention."""
+    if not nmn_available:
+        pytest.skip("nmn package not available")
+    
+    from aether.models import Me3zaTransformerBlock
+    
+    rngs = nnx.Rngs(42)
+    block = Me3zaTransformerBlock(
+        embed_dim=256,
+        num_heads=4,
+        ff_dim=512,
+        maxlen=128,
+        rngs=rngs,
+        use_performer=True
+    )
+    
+    # Test forward pass
+    inputs = jnp.ones((2, 10, 256))  # batch_size=2, seq_len=10, embed_dim=256
+    outputs = block(inputs, training=False)
+    
+    assert outputs.shape == inputs.shape
+
+
+def test_me3za_without_performer(nmn_available):
+    """Test Me3za model without Performer mode (standard attention)."""
+    if not nmn_available:
+        pytest.skip("nmn package not available")
+    
+    from aether.models import Me3za
+    
+    rngs = nnx.Rngs(42)
+    model = Me3za(
+        maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        num_heads=4,
+        feed_forward_dim=512,
+        num_transformer_blocks=2,
+        rngs=rngs,
+        use_performer=False,  # Standard quadratic attention
+        dropout_rate=0.1
+    )
+    
+    inputs = jnp.array([[1, 2, 3, 4, 5]])
+    outputs = model(inputs, training=False)
+    
+    assert outputs.shape == (1, 5, 1000)
+
+
+def test_me3za_training_mode(nmn_available):
+    """Test Me3za model in training mode."""
+    if not nmn_available:
+        pytest.skip("nmn package not available")
+    
+    from aether.models import Me3za
+    
+    rngs = nnx.Rngs(42)
+    model = Me3za(
+        maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        num_heads=4,
+        feed_forward_dim=512,
+        num_transformer_blocks=2,
+        rngs=rngs,
+        dropout_rate=0.1
+    )
+    
+    inputs = jnp.array([[1, 2, 3, 4, 5]])
+    
+    # Run in training mode (dropout active)
+    outputs_train = model(inputs, training=True)
+    assert outputs_train.shape == (1, 5, 1000)
+    
+    # Run in inference mode (dropout inactive)
+    outputs_eval = model(inputs, training=False)
+    assert outputs_eval.shape == (1, 5, 1000)
 
 
 if __name__ == "__main__":
