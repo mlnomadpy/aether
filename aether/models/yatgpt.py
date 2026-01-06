@@ -48,12 +48,12 @@ class YatTransformerBlock(nnx.Module):
         Args:
             embed_dim: Embedding dimension
             num_heads: Number of attention heads
-            ff_dim: Feed-forward dimension
+            ff_dim: Feed-forward dimension (kept for API consistency, YAT uses 4*embed_dim)
             rngs: Random number generators
             rate: Dropout rate
             mesh: JAX mesh for sharding
             param_dtype: Data type for parameters
-            compute_dtype: Data type for computations
+            compute_dtype: Data type for computations (kept for API consistency)
             **kwargs: Additional architecture-specific arguments
         """
         self.embed_dim = embed_dim
@@ -61,7 +61,7 @@ class YatTransformerBlock(nnx.Module):
         self.ff_dim = ff_dim
         self.rate = rate
         self.param_dtype = param_dtype
-        self.compute_dtype = compute_dtype
+        self.compute_dtype = compute_dtype  # Stored for API consistency with other models
         
         # Set up partitioning if mesh is provided
         if mesh is not None:
@@ -104,7 +104,13 @@ class YatTransformerBlock(nnx.Module):
         self.dropout2 = nnx.Dropout(rate=rate, rngs=rngs)
     
     def _create_yat_ffn(self, embed_dim, ff_dim, kernel_init, bias_init, alpha_init, layer_norm_scale_init, rngs, param_dtype):
-        """Create YAT feed-forward network."""
+        """Create YAT feed-forward network.
+        
+        Note: YAT architecture uses 4 * embed_dim for intermediate layers as per the
+        original YatNMN design. The ff_dim parameter is accepted for API consistency
+        but not used directly.
+        """
+        # Import inside method to keep nmn as an optional dependency
         try:
             from nmn.nnx.nmn import YatNMN
         except ImportError:
@@ -202,12 +208,12 @@ class YatGPT(BaseModel):
             vocab_size: Vocabulary size
             embed_dim: Embedding dimension
             num_heads: Number of attention heads
-            feed_forward_dim: Feed-forward dimension
+            feed_forward_dim: Feed-forward dimension (kept for API consistency)
             num_transformer_blocks: Number of transformer blocks
             rngs: Random number generators
             mesh: JAX mesh for sharding
             param_dtype: Data type for parameters
-            compute_dtype: Data type for computations
+            compute_dtype: Data type for computations (kept for API consistency)
             attention_block_reuse: Number of times to reuse attention blocks (1 = no reuse)
             **kwargs: Additional arguments passed to transformer blocks
         """
@@ -218,7 +224,7 @@ class YatGPT(BaseModel):
         self.feed_forward_dim = feed_forward_dim
         self.num_transformer_blocks = num_transformer_blocks
         self.param_dtype = param_dtype
-        self.compute_dtype = compute_dtype
+        self.compute_dtype = compute_dtype  # Stored for API consistency with other models
         self.attention_block_reuse = attention_block_reuse
         
         # Embedding layer
