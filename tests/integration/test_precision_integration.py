@@ -24,7 +24,6 @@ def test_float16_integration():
         feed_forward_dim=256,
         num_transformer_blocks=2,
         rngs=rngs,
-        architecture="linear",
         param_dtype=jnp.float16,
         compute_dtype=jnp.float16
     )
@@ -64,7 +63,6 @@ def test_float64_integration():
         feed_forward_dim=256,
         num_transformer_blocks=2,
         rngs=rngs,
-        architecture="linear",
         param_dtype=jnp.float64,
         compute_dtype=jnp.float64
     )
@@ -100,7 +98,6 @@ def test_all_precisions_produce_different_results():
             feed_forward_dim=256,
             num_transformer_blocks=2,
             rngs=rngs,
-            architecture="linear",
             param_dtype=dtype,
             compute_dtype=dtype
         )

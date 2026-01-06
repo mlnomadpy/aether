@@ -1,4 +1,4 @@
-"""MiniGPT transformer model implementation."""
+"""MiniGPT transformer model implementation with linear architecture."""
 
 import jax.numpy as jnp
 import flax.nnx as nnx
@@ -20,7 +20,10 @@ def _create_module_list(modules):
 
 
 class MiniGPT(BaseModel):
-    """A miniGPT transformer model with configurable architecture."""
+    """A miniGPT transformer model with linear architecture.
+    
+    For YAT architecture, use the YatGPT model instead.
+    """
     
     def __init__(
         self,
@@ -31,7 +34,6 @@ class MiniGPT(BaseModel):
         feed_forward_dim: int,
         num_transformer_blocks: int,
         rngs: nnx.Rngs,
-        architecture: str = "linear",
         mesh: Optional[object] = None,
         param_dtype: jnp.dtype = jnp.float32,
         compute_dtype: jnp.dtype = jnp.float32,
@@ -48,7 +50,6 @@ class MiniGPT(BaseModel):
             feed_forward_dim: Feed-forward dimension
             num_transformer_blocks: Number of transformer blocks
             rngs: Random number generators
-            architecture: Architecture type ('linear' or 'yat')
             mesh: JAX mesh for sharding
             param_dtype: Data type for parameters
             compute_dtype: Data type for computations
@@ -61,7 +62,6 @@ class MiniGPT(BaseModel):
         self.num_heads = num_heads
         self.feed_forward_dim = feed_forward_dim
         self.num_transformer_blocks = num_transformer_blocks
-        self.architecture = architecture
         self.param_dtype = param_dtype
         self.compute_dtype = compute_dtype
         self.attention_block_reuse = attention_block_reuse
@@ -71,7 +71,7 @@ class MiniGPT(BaseModel):
             maxlen, vocab_size, embed_dim, rngs=rngs, param_dtype=param_dtype
         )
         
-        # Transformer blocks
+        # Transformer blocks (linear architecture)
         self.transformer_blocks = _create_module_list([
             TransformerBlock(
                 embed_dim, 
@@ -79,7 +79,6 @@ class MiniGPT(BaseModel):
                 feed_forward_dim, 
                 rngs=rngs,
                 mesh=mesh,
-                architecture=architecture,
                 param_dtype=param_dtype,
                 compute_dtype=compute_dtype,
                 **kwargs
@@ -101,28 +100,14 @@ class MiniGPT(BaseModel):
             kernel_init = nnx.initializers.xavier_uniform()
             bias_init = nnx.initializers.zeros_init()
         
-        # if architecture == "yat":
-        #     try:
-        #         from nmn.nnx.nmn import YatNMN
-        #         self.output_layer = YatNMN(
-        #             in_features=embed_dim,
-        #             out_features=vocab_size,
-        #             kernel_init=kernel_init,
-        #             bias_init=bias_init,
-        #             use_bias=False,
-        #             rngs=rngs
-        #         )
-        #     except ImportError:
-        #         raise ImportError("YatNMN architecture requires the 'nmn' package.")
-        # else:
         self.output_layer = nnx.Linear(
-                in_features=embed_dim,
-                out_features=vocab_size,
-                kernel_init=kernel_init,
-                bias_init=bias_init,
-                param_dtype=param_dtype,
-                rngs=rngs
-            )
+            in_features=embed_dim,
+            out_features=vocab_size,
+            kernel_init=kernel_init,
+            bias_init=bias_init,
+            param_dtype=param_dtype,
+            rngs=rngs
+        )
 
     def __call__(self, inputs: jnp.ndarray, training: bool = False) -> jnp.ndarray:
         """Forward pass through the model.
@@ -156,7 +141,7 @@ class MiniGPT(BaseModel):
             'num_heads': self.num_heads,
             'feed_forward_dim': self.feed_forward_dim,
             'num_transformer_blocks': self.num_transformer_blocks,
-            'architecture': self.architecture,
+            'architecture': 'linear',
             'attention_block_reuse': self.attention_block_reuse
         }
     
@@ -172,4 +157,6 @@ class MiniGPT(BaseModel):
         Returns:
             MiniGPT model instance
         """
+        # Remove 'architecture' from config if present since it's not a constructor arg
+        config = {k: v for k, v in config.items() if k != 'architecture'}
         return cls(rngs=rngs, **config, **kwargs)

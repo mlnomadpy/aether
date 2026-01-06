@@ -18,7 +18,6 @@ def test_float16_model_creation():
         feed_forward_dim=256,
         num_transformer_blocks=2,
         rngs=rngs,
-        architecture="linear",
         param_dtype=jnp.float16,
         compute_dtype=jnp.float16
     )
@@ -55,7 +54,6 @@ def test_float64_model_creation():
         feed_forward_dim=256,
         num_transformer_blocks=2,
         rngs=rngs,
-        architecture="linear",
         param_dtype=jnp.float64,
         compute_dtype=jnp.float64
     )
@@ -148,7 +146,6 @@ def test_float16_forward_backward_pass():
         feed_forward_dim=256,
         num_transformer_blocks=2,
         rngs=rngs,
-        architecture="linear",
         param_dtype=jnp.float16,
         compute_dtype=jnp.float16
     )
@@ -202,7 +199,6 @@ def test_float64_forward_backward_pass():
         feed_forward_dim=256,
         num_transformer_blocks=2,
         rngs=rngs,
-        architecture="linear",
         param_dtype=jnp.float64,
         compute_dtype=jnp.float64
     )

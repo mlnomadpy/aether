@@ -1,7 +1,7 @@
 """Setup and register default models."""
 
 from aether.registry import register_model
-from aether.models import MiniGPT
+from aether.models import MiniGPT, YatGPT
 
 
 def register_default_models():
@@ -12,7 +12,6 @@ def register_default_models():
         name="minigpt-linear",
         model_class=MiniGPT,
         default_config={
-            "architecture": "linear",
             "maxlen": 1024,
             "vocab_size": 50257,
             "embed_dim": 768,
@@ -23,12 +22,11 @@ def register_default_models():
         }
     )
     
-    # YAT architecture MiniGPT
+    # YAT architecture YatGPT (decoupled from MiniGPT)
     register_model(
         name="minigpt-yat",
-        model_class=MiniGPT,
+        model_class=YatGPT,
         default_config={
-            "architecture": "yat",
             "maxlen": 1024,
             "vocab_size": 50257,
             "embed_dim": 768,

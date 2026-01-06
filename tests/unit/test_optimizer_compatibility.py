@@ -16,8 +16,7 @@ def test_model_is_nnx_module():
         num_heads=4,
         feed_forward_dim=512,
         num_transformer_blocks=2,
-        rngs=rngs,
-        architecture="linear"
+        rngs=rngs
     )
     
     # Model should be a proper nnx.Module
@@ -35,8 +34,7 @@ def test_optimizer_creation():
         num_heads=4,
         feed_forward_dim=512,
         num_transformer_blocks=2,
-        rngs=rngs,
-        architecture="linear"
+        rngs=rngs
     )
     
     # Should be able to create optimizer with wrt parameter
@@ -56,8 +54,7 @@ def test_nnx_state_call():
         num_heads=4,
         feed_forward_dim=512,
         num_transformer_blocks=2,
-        rngs=rngs,
-        architecture="linear"
+        rngs=rngs
     )
     
     # Should be able to extract state without errors
@@ -75,8 +72,7 @@ def test_model_works_with_nnx_split():
         num_heads=4,
         feed_forward_dim=512,
         num_transformer_blocks=2,
-        rngs=rngs,
-        architecture="linear"
+        rngs=rngs
     )
     
     # This should not raise "Unsupported type" error

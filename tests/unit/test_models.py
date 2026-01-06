@@ -61,8 +61,7 @@ def test_transformer_block_linear():
         embed_dim=256,
         num_heads=4,
         ff_dim=512,
-        rngs=rngs,
-        architecture="linear"
+        rngs=rngs
     )
     
     # Test forward pass
@@ -80,7 +79,6 @@ def test_transformer_block_linear_without_norm():
         num_heads=4,
         ff_dim=512,
         rngs=rngs,
-        architecture="linear",
         use_layer_norm=False
     )
     
@@ -103,7 +101,6 @@ def test_transformer_block_linear_with_norm():
         num_heads=4,
         ff_dim=512,
         rngs=rngs,
-        architecture="linear",
         use_layer_norm=True
     )
     
@@ -128,8 +125,7 @@ def test_minigpt_linear():
         num_heads=4,
         feed_forward_dim=512,
         num_transformer_blocks=2,
-        rngs=rngs,
-        architecture="linear"
+        rngs=rngs
     )
     
     # Test forward pass
@@ -148,8 +144,7 @@ def test_minigpt_config():
         "embed_dim": 256,
         "num_heads": 4,
         "feed_forward_dim": 512,
-        "num_transformer_blocks": 2,
-        "architecture": "linear"
+        "num_transformer_blocks": 2
     }
     
     model = MiniGPT.from_config(config, rngs)
@@ -158,6 +153,8 @@ def test_minigpt_config():
     # Check that configurations match
     for key, value in config.items():
         assert retrieved_config[key] == value
+    # MiniGPT should always return 'linear' as architecture
+    assert retrieved_config['architecture'] == 'linear'
 
 
 def test_minigpt_attention_block_reuse():
@@ -173,7 +170,6 @@ def test_minigpt_attention_block_reuse():
         feed_forward_dim=512,
         num_transformer_blocks=2,
         rngs=rngs,
-        architecture="linear",
         attention_block_reuse=1
     )
     
@@ -191,7 +187,6 @@ def test_minigpt_attention_block_reuse():
         feed_forward_dim=512,
         num_transformer_blocks=2,
         rngs=rngs2,
-        architecture="linear",
         attention_block_reuse=3
     )
     
@@ -204,8 +199,6 @@ def test_minigpt_attention_block_reuse():
     assert config["attention_block_reuse"] == 3
 
 
-# --- Me3za Architecture Tests ---
-
 def _nmn_available():
     """Check if nmn package is available."""
     try:
@@ -214,6 +207,108 @@ def _nmn_available():
         return True
     except ImportError:
         return False
+
+
+# --- YatGPT Architecture Tests ---
+
+@pytest.mark.skipif(not _nmn_available(), reason="nmn package not available")
+def test_yatgpt_model():
+    """Test YatGPT model with YAT architecture."""
+    from aether.models import YatGPT
+    
+    rngs = nnx.Rngs(42)
+    model = YatGPT(
+        maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        num_heads=4,
+        feed_forward_dim=512,
+        num_transformer_blocks=2,
+        rngs=rngs
+    )
+    
+    # Test forward pass
+    inputs = jnp.array([[1, 2, 3, 4, 5]])  # batch_size=1, seq_len=5
+    outputs = model(inputs, training=True)
+    
+    assert outputs.shape == (1, 5, 1000)  # (batch_size, seq_len, vocab_size)
+
+
+@pytest.mark.skipif(not _nmn_available(), reason="nmn package not available")
+def test_yatgpt_config():
+    """Test YatGPT configuration methods."""
+    from aether.models import YatGPT
+    
+    rngs = nnx.Rngs(42)
+    config = {
+        "maxlen": 128,
+        "vocab_size": 1000,
+        "embed_dim": 256,
+        "num_heads": 4,
+        "feed_forward_dim": 512,
+        "num_transformer_blocks": 2
+    }
+    
+    model = YatGPT.from_config(config, rngs)
+    retrieved_config = model.get_config()
+    
+    # Check that configurations match
+    for key, value in config.items():
+        assert retrieved_config[key] == value
+    # YatGPT should always return 'yat' as architecture
+    assert retrieved_config['architecture'] == 'yat'
+
+
+@pytest.mark.skipif(not _nmn_available(), reason="nmn package not available")
+def test_yat_transformer_block():
+    """Test YatTransformerBlock with YAT feed-forward network."""
+    from aether.models import YatTransformerBlock
+    
+    rngs = nnx.Rngs(42)
+    block = YatTransformerBlock(
+        embed_dim=256,
+        num_heads=4,
+        ff_dim=512,
+        rngs=rngs
+    )
+    
+    # Test forward pass
+    inputs = jnp.ones((2, 10, 256))  # batch_size=2, seq_len=10, embed_dim=256
+    outputs = block(inputs, training=True)
+    
+    assert outputs.shape == inputs.shape
+
+
+@pytest.mark.skipif(not _nmn_available(), reason="nmn package not available")
+def test_yatgpt_attention_block_reuse():
+    """Test YatGPT with attention block reuse functionality."""
+    from aether.models import YatGPT
+    
+    rngs = nnx.Rngs(42)
+    
+    # Test with reuse = 2
+    model = YatGPT(
+        maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        num_heads=4,
+        feed_forward_dim=512,
+        num_transformer_blocks=2,
+        rngs=rngs,
+        attention_block_reuse=2
+    )
+    
+    inputs = jnp.array([[1, 2, 3, 4, 5]])
+    outputs = model(inputs, training=True)
+    assert outputs.shape == (1, 5, 1000)
+    
+    # Verify config contains attention_block_reuse
+    config = model.get_config()
+    assert "attention_block_reuse" in config
+    assert config["attention_block_reuse"] == 2
+
+
+# --- Me3za Architecture Tests ---
 
 
 @pytest.mark.skipif(not _nmn_available(), reason="nmn package not available")

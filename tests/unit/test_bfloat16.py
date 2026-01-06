@@ -18,7 +18,6 @@ def test_bfloat16_model_creation():
         feed_forward_dim=256,
         num_transformer_blocks=2,
         rngs=rngs,
-        architecture="linear",
         param_dtype=jnp.bfloat16,
         compute_dtype=jnp.bfloat16
     )
@@ -51,7 +50,6 @@ def test_float32_model_backward_compatibility():
         feed_forward_dim=256,
         num_transformer_blocks=2,
         rngs=rngs,
-        architecture="linear",
         param_dtype=jnp.float32,
         compute_dtype=jnp.float32
     )
