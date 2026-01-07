@@ -21,8 +21,7 @@ def profile_model_forward_pass():
         num_heads=12,
         feed_forward_dim=768,
         num_transformer_blocks=12,
-        rngs=rngs,
-        architecture="linear"
+        rngs=rngs
     )
     
     # Create test input
@@ -75,8 +74,7 @@ def profile_training_step():
         num_heads=12,
         feed_forward_dim=768,
         num_transformer_blocks=6,  # Fewer layers for faster training
-        rngs=rngs,
-        architecture="linear"
+        rngs=rngs
     )
     
     import optax
@@ -146,8 +144,7 @@ def profile_memory_usage():
             num_heads=8,
             feed_forward_dim=512,
             num_transformer_blocks=4,
-            rngs=rngs,
-            architecture="linear"
+            rngs=rngs
         )
         
         after_model_memory = get_memory_usage()
