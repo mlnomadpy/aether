@@ -7,7 +7,9 @@ of input and configuration, which is essential for production deployment.
 import pytest
 import sys
 import os
-sys.path.insert(0, '/home/runner/work/aether/aether')
+
+# Add the repository root to the path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 import jax.numpy as jnp
 import flax.nnx as nnx
@@ -410,7 +412,15 @@ class TestRegistryScalability:
 
 
 class TestPerformanceBaseline:
-    """Tests to establish performance baselines."""
+    """Tests to establish performance baselines.
+    
+    Note: Time thresholds are intentionally generous to avoid flaky tests
+    across different hardware configurations and CI environments.
+    """
+    
+    # Configurable thresholds (generous defaults for CI environments)
+    FORWARD_PASS_TIMEOUT = float(os.environ.get('AETHER_FORWARD_PASS_TIMEOUT', '60'))
+    TRAINING_STEP_TIMEOUT = float(os.environ.get('AETHER_TRAINING_STEP_TIMEOUT', '120'))
     
     def test_forward_pass_timing(self):
         """Test forward pass timing for baseline."""
@@ -438,8 +448,10 @@ class TestPerformanceBaseline:
             outputs = model(batch, training=False)
         elapsed = time.time() - start
         
-        # Should complete reasonably quickly (< 30s for 10 iterations)
-        assert elapsed < 30.0
+        # Should complete within the timeout
+        assert elapsed < self.FORWARD_PASS_TIMEOUT, (
+            f"Forward pass took {elapsed:.1f}s, expected < {self.FORWARD_PASS_TIMEOUT}s"
+        )
     
     def test_training_step_timing(self):
         """Test training step timing for baseline."""
@@ -469,8 +481,10 @@ class TestPerformanceBaseline:
             loss, model, optimizer = train_step(model, optimizer, batch)
         elapsed = time.time() - start
         
-        # Should complete reasonably quickly (< 60s for 5 iterations)
-        assert elapsed < 60.0
+        # Should complete within the timeout
+        assert elapsed < self.TRAINING_STEP_TIMEOUT, (
+            f"Training step took {elapsed:.1f}s, expected < {self.TRAINING_STEP_TIMEOUT}s"
+        )
 
 
 if __name__ == "__main__":

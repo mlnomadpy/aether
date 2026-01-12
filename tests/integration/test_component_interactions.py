@@ -7,7 +7,9 @@ correctly, which is essential for large-scale integration readiness.
 import pytest
 import sys
 import os
-sys.path.insert(0, '/home/runner/work/aether/aether')
+
+# Add the repository root to the path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 import jax.numpy as jnp
 import flax.nnx as nnx
