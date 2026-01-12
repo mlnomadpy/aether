@@ -59,8 +59,8 @@ def train_step(
     grad_fn = nnx.value_and_grad(loss_fn, has_aux=True)
     (loss, _), grads = grad_fn(model, batch, training=True)
     
-    # Update model parameters
-    optimizer.update(grads)
+    # Update model parameters (Flax 0.11+ API)
+    optimizer.update(model, grads)
     
     return loss, model, optimizer
 
