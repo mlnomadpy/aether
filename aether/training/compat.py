@@ -1,6 +1,6 @@
-"""Flax optimizer compatibility layer for Flax 0.8 and 0.11+.
+"""Flax optimizer compatibility layer for Flax 0.10.x and earlier vs 0.11+.
 
-In Flax 0.8:
+In Flax 0.10.x and earlier:
     - nnx.Optimizer(model, tx, wrt=nnx.Param) - wrt has default value
     - optimizer.update(grads) - only takes grads
 
@@ -29,15 +29,16 @@ def get_flax_version() -> tuple:
 
 
 def is_flax_08() -> bool:
-    """Check if the installed Flax version is 0.8.x (uses old optimizer API).
+    """Check if the installed Flax version uses the old optimizer API.
     
     Returns:
-        True if Flax 0.8.x or earlier, False for 0.9+ (new API)
+        True if Flax 0.10.x or earlier (uses old API: update(grads)),
+        False for 0.11+ (uses new API: update(model, grads))
     """
     flax_ver = get_flax_version()
-    # Flax 0.8.x and earlier use the old API (update takes only grads)
-    # Flax 0.9+ uses the new API (update takes model and grads)
-    return flax_ver < (0, 9, 0)
+    # Flax 0.10.x and earlier use the old API (update takes only grads)
+    # Flax 0.11+ uses the new API (update takes model and grads)
+    return flax_ver < (0, 11, 0)
 
 
 def _check_optimizer_update_signature() -> bool:
@@ -49,11 +50,11 @@ def _check_optimizer_update_signature() -> bool:
     try:
         sig = inspect.signature(nnx.Optimizer.update)
         params = list(sig.parameters.keys())
-        # Old API: update(self, grads) - exactly 2 params
-        # New API: update(self, model, grads, /, **kwargs) - 3+ params with 'model' second
-        # In old API, the second param (after 'self') is 'grads'
-        # In new API, the second param is 'model'
-        return len(params) == 2 and params[1] == "grads"
+        # Old API: update(self, grads) or update(self, grads, **kwargs) - second param is 'grads'
+        # New API: update(self, model, grads, /, **kwargs) - second param is 'model'
+        # Check if the second parameter (after 'self') is 'grads' -> old API
+        # If the second parameter is 'model' -> new API
+        return len(params) > 1 and params[1] == "grads"
     except Exception:
         # Fall back to version check if signature inspection fails
         return is_flax_08()
@@ -74,7 +75,7 @@ def create_optimizer(model: nnx.Module, optimizer_fn, wrt=nnx.Param) -> nnx.Opti
     Returns:
         An nnx.Optimizer instance
     """
-    # The constructor API is the same for both Flax 0.8 and 0.11+
+    # The constructor API is the same for both Flax 0.10.x and earlier vs 0.11+
     # The difference is in the update() method, not the constructor
     return nnx.Optimizer(model, optimizer_fn, wrt=wrt)
 
@@ -90,7 +91,7 @@ def update_optimizer(optimizer: nnx.Optimizer, model: nnx.Module, grads) -> None
         grads: The computed gradients
     """
     if _USE_OLD_API:
-        # Flax 0.8: optimizer.update(grads) - only takes grads
+        # Flax 0.10.x and earlier: optimizer.update(grads) - only takes grads
         # The optimizer stores a reference to the model internally
         optimizer.update(grads)
     else:
