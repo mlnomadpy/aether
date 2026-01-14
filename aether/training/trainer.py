@@ -11,6 +11,7 @@ import orbax.checkpoint as orbax
 from typing import Dict, Any, Optional
 
 from .steps import train_step, eval_step
+from .compat import create_optimizer
 from ..config import Config
 from ..registry import create_model
 from ..data import create_data_iterators, create_validation_iterator, create_training_iterator, prepare_batch
@@ -187,7 +188,7 @@ class Trainer:
         else:
             raise ValueError(f"Unsupported optimizer: {self.config.training.optimizer}")
 
-        return nnx.Optimizer(self.model, optimizer_fn, wrt=nnx.Param)
+        return create_optimizer(self.model, optimizer_fn, wrt=nnx.Param)
 
     def _create_data_iterators(self):
         """Create data iterators."""

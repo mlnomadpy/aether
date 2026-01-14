@@ -6,6 +6,8 @@ import flax.nnx as nnx
 import optax
 from typing import Tuple, Any
 
+from .compat import update_optimizer
+
 
 def loss_fn(model: nnx.Module, batch: jnp.ndarray, training: bool = True) -> Tuple[jnp.ndarray, Any]:
     """Compute the cross-entropy loss for language modeling.
@@ -59,8 +61,8 @@ def train_step(
     grad_fn = nnx.value_and_grad(loss_fn, has_aux=True)
     (loss, _), grads = grad_fn(model, batch, training=True)
     
-    # Update model parameters (Flax 0.11+ API)
-    optimizer.update(model, grads)
+    # Update model parameters (compatible with both Flax 0.8 and 0.11+)
+    update_optimizer(optimizer, model, grads)
     
     return loss, model, optimizer
 
