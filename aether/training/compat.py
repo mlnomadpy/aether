@@ -75,7 +75,7 @@ def create_optimizer(model: nnx.Module, optimizer_fn, wrt=nnx.Param) -> nnx.Opti
     Returns:
         An nnx.Optimizer instance
     """
-    # The constructor API is the same for both Flax 0.8 and 0.11+
+    # The constructor API is the same for both Flax 0.10.x and earlier vs 0.11+
     # The difference is in the update() method, not the constructor
     return nnx.Optimizer(model, optimizer_fn, wrt=wrt)
 
@@ -91,7 +91,7 @@ def update_optimizer(optimizer: nnx.Optimizer, model: nnx.Module, grads) -> None
         grads: The computed gradients
     """
     if _USE_OLD_API:
-        # Flax 0.8: optimizer.update(grads) - only takes grads
+        # Flax 0.10.x and earlier: optimizer.update(grads) - only takes grads
         # The optimizer stores a reference to the model internally
         optimizer.update(grads)
     else:
