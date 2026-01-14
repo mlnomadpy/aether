@@ -49,10 +49,11 @@ def _check_optimizer_update_signature() -> bool:
     try:
         sig = inspect.signature(nnx.Optimizer.update)
         params = list(sig.parameters.keys())
-        # Old API: update(self, grads)
-        # New API: update(self, model, grads, /, **kwargs)
-        # In the new API, 'model' is the second parameter after 'self'
-        return len(params) <= 2 or params[1] == "grads"
+        # Old API: update(self, grads) - exactly 2 params
+        # New API: update(self, model, grads, /, **kwargs) - 3+ params with 'model' second
+        # In old API, the second param (after 'self') is 'grads'
+        # In new API, the second param is 'model'
+        return len(params) == 2 and params[1] == "grads"
     except Exception:
         # Fall back to version check if signature inspection fails
         return is_flax_08()
@@ -73,12 +74,9 @@ def create_optimizer(model: nnx.Module, optimizer_fn, wrt=nnx.Param) -> nnx.Opti
     Returns:
         An nnx.Optimizer instance
     """
-    if _USE_OLD_API:
-        # Flax 0.8: wrt is an optional positional argument with default value
-        return nnx.Optimizer(model, optimizer_fn, wrt=wrt)
-    else:
-        # Flax 0.11+: wrt is a required keyword-only argument
-        return nnx.Optimizer(model, optimizer_fn, wrt=wrt)
+    # The constructor API is the same for both Flax 0.8 and 0.11+
+    # The difference is in the update() method, not the constructor
+    return nnx.Optimizer(model, optimizer_fn, wrt=wrt)
 
 
 def update_optimizer(optimizer: nnx.Optimizer, model: nnx.Module, grads) -> None:
