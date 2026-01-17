@@ -305,7 +305,7 @@ class YatPerformerAttention(nnx.Module):
         proj = jnp.einsum('bhsd,hfd->bhsf', x_norm, self.projection.value)
         
         # Apply ReLU + epsilon for positive features
-        return jax.nn.relu(proj) + self.yat_epsilon
+        return nnx.relu(proj) + self.yat_epsilon
     
     def __call__(
         self, 
