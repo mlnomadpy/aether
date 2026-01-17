@@ -112,8 +112,6 @@ def test_config_with_num_random_features():
 
 def test_yat_config_file_loading():
     """Test loading actual Yat config files."""
-    import os
-    
     # Get the path to the configs directory
     test_dir = os.path.dirname(__file__)
     repo_root = os.path.dirname(os.path.dirname(test_dir))
@@ -128,8 +126,6 @@ def test_yat_config_file_loading():
 
 def test_yat_performer_config_file_loading():
     """Test loading actual Yat Performer config files."""
-    import os
-    
     # Get the path to the configs directory
     test_dir = os.path.dirname(__file__)
     repo_root = os.path.dirname(os.path.dirname(test_dir))
