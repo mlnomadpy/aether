@@ -211,5 +211,6 @@ checkpoints/
 wandb/
 *.json.tmp
 *_config.json
+!configs/*_config.json
 test_*.json
 demo_*.json
