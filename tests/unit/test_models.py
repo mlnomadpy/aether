@@ -462,5 +462,303 @@ def test_me3za_training_mode():
     assert outputs_eval.shape == (1, 5, 1000)
 
 
+# --- AetherYat and AetherYatPerformer Architecture Tests ---
+
+
+def test_yat_attention_module():
+    """Test YatAttention module."""
+    from aether.models import YatAttention
+    
+    rngs = nnx.Rngs(42)
+    attn = YatAttention(
+        embed_dim=256,
+        num_heads=4,
+        rngs=rngs,
+        yat_epsilon=0.1,
+        dropout_rate=0.1,
+    )
+    
+    # Test forward pass
+    inputs = jnp.ones((2, 10, 256))  # batch_size=2, seq_len=10, embed_dim=256
+    mask = jnp.tril(jnp.ones((10, 10)))  # Causal mask
+    outputs = attn(inputs, mask=mask, deterministic=False)
+    
+    assert outputs.shape == inputs.shape
+
+
+def test_yat_performer_attention_module():
+    """Test YatPerformerAttention module."""
+    from aether.models import YatPerformerAttention
+    
+    rngs = nnx.Rngs(42)
+    attn = YatPerformerAttention(
+        embed_dim=256,
+        num_heads=4,
+        rngs=rngs,
+        num_random_features=128,
+        yat_epsilon=0.1,
+        dropout_rate=0.1,
+    )
+    
+    # Test forward pass
+    inputs = jnp.ones((2, 10, 256))  # batch_size=2, seq_len=10, embed_dim=256
+    outputs = attn(inputs, deterministic=False)
+    
+    assert outputs.shape == inputs.shape
+
+
+def test_yat_attention_transformer_block():
+    """Test YatAttentionTransformerBlock."""
+    from aether.models import YatAttentionTransformerBlock
+    
+    rngs = nnx.Rngs(42)
+    block = YatAttentionTransformerBlock(
+        embed_dim=256,
+        num_heads=4,
+        ff_dim=512,
+        rngs=rngs,
+        yat_epsilon=0.1,
+    )
+    
+    # Test forward pass
+    inputs = jnp.ones((2, 10, 256))  # batch_size=2, seq_len=10, embed_dim=256
+    outputs = block(inputs, training=True)
+    
+    assert outputs.shape == inputs.shape
+
+
+def test_yat_performer_transformer_block():
+    """Test YatPerformerTransformerBlock."""
+    from aether.models import YatPerformerTransformerBlock
+    
+    rngs = nnx.Rngs(42)
+    block = YatPerformerTransformerBlock(
+        embed_dim=256,
+        num_heads=4,
+        ff_dim=512,
+        rngs=rngs,
+        num_random_features=128,
+        yat_epsilon=0.1,
+    )
+    
+    # Test forward pass
+    inputs = jnp.ones((2, 10, 256))  # batch_size=2, seq_len=10, embed_dim=256
+    outputs = block(inputs, training=True)
+    
+    assert outputs.shape == inputs.shape
+
+
+def test_aether_yat_model():
+    """Test AetherYat model."""
+    from aether.models import AetherYat
+    
+    rngs = nnx.Rngs(42)
+    model = AetherYat(
+        maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        num_heads=4,
+        feed_forward_dim=512,
+        num_transformer_blocks=2,
+        rngs=rngs,
+        yat_epsilon=0.1,
+        dropout_rate=0.1,
+    )
+    
+    # Test forward pass
+    inputs = jnp.array([[1, 2, 3, 4, 5]])  # batch_size=1, seq_len=5
+    outputs = model(inputs, training=True)
+    
+    assert outputs.shape == (1, 5, 1000)  # (batch_size, seq_len, vocab_size)
+
+
+def test_aether_yat_performer_model():
+    """Test AetherYatPerformer model."""
+    from aether.models import AetherYatPerformer
+    
+    rngs = nnx.Rngs(42)
+    model = AetherYatPerformer(
+        maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        num_heads=4,
+        feed_forward_dim=512,
+        num_transformer_blocks=2,
+        rngs=rngs,
+        num_random_features=128,
+        yat_epsilon=0.1,
+        dropout_rate=0.1,
+    )
+    
+    # Test forward pass
+    inputs = jnp.array([[1, 2, 3, 4, 5]])  # batch_size=1, seq_len=5
+    outputs = model(inputs, training=True)
+    
+    assert outputs.shape == (1, 5, 1000)  # (batch_size, seq_len, vocab_size)
+
+
+def test_aether_yat_config():
+    """Test AetherYat configuration methods."""
+    from aether.models import AetherYat
+    
+    rngs = nnx.Rngs(42)
+    config = {
+        "maxlen": 128,
+        "vocab_size": 1000,
+        "embed_dim": 256,
+        "num_heads": 4,
+        "feed_forward_dim": 512,
+        "num_transformer_blocks": 2,
+        "yat_epsilon": 0.1,
+        "dropout_rate": 0.1,
+    }
+    
+    model = AetherYat.from_config(config, rngs)
+    retrieved_config = model.get_config()
+    
+    # Check that configurations match
+    for key, value in config.items():
+        assert retrieved_config[key] == value
+    # AetherYat should return 'aether_yat' as architecture
+    assert retrieved_config['architecture'] == 'aether_yat'
+
+
+def test_aether_yat_performer_config():
+    """Test AetherYatPerformer configuration methods."""
+    from aether.models import AetherYatPerformer
+    
+    rngs = nnx.Rngs(42)
+    config = {
+        "maxlen": 128,
+        "vocab_size": 1000,
+        "embed_dim": 256,
+        "num_heads": 4,
+        "feed_forward_dim": 512,
+        "num_transformer_blocks": 2,
+        "num_random_features": 128,
+        "yat_epsilon": 0.1,
+        "dropout_rate": 0.1,
+    }
+    
+    model = AetherYatPerformer.from_config(config, rngs)
+    retrieved_config = model.get_config()
+    
+    # Check that configurations match
+    for key, value in config.items():
+        assert retrieved_config[key] == value
+    # AetherYatPerformer should return 'aether_yat_performer' as architecture
+    assert retrieved_config['architecture'] == 'aether_yat_performer'
+
+
+def test_aether_yat_attention_block_reuse():
+    """Test AetherYat with attention block reuse functionality."""
+    from aether.models import AetherYat
+    
+    rngs = nnx.Rngs(42)
+    
+    # Test with reuse = 2
+    model = AetherYat(
+        maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        num_heads=4,
+        feed_forward_dim=512,
+        num_transformer_blocks=2,
+        rngs=rngs,
+        attention_block_reuse=2,
+    )
+    
+    inputs = jnp.array([[1, 2, 3, 4, 5]])
+    outputs = model(inputs, training=True)
+    assert outputs.shape == (1, 5, 1000)
+    
+    # Verify config contains attention_block_reuse
+    config = model.get_config()
+    assert "attention_block_reuse" in config
+    assert config["attention_block_reuse"] == 2
+
+
+def test_aether_yat_performer_attention_block_reuse():
+    """Test AetherYatPerformer with attention block reuse functionality."""
+    from aether.models import AetherYatPerformer
+    
+    rngs = nnx.Rngs(42)
+    
+    # Test with reuse = 3
+    model = AetherYatPerformer(
+        maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        num_heads=4,
+        feed_forward_dim=512,
+        num_transformer_blocks=2,
+        rngs=rngs,
+        attention_block_reuse=3,
+    )
+    
+    inputs = jnp.array([[1, 2, 3, 4, 5]])
+    outputs = model(inputs, training=True)
+    assert outputs.shape == (1, 5, 1000)
+    
+    # Verify config contains attention_block_reuse
+    config = model.get_config()
+    assert "attention_block_reuse" in config
+    assert config["attention_block_reuse"] == 3
+
+
+def test_aether_yat_training_vs_inference():
+    """Test AetherYat in training vs inference mode."""
+    from aether.models import AetherYat
+    
+    rngs = nnx.Rngs(42)
+    model = AetherYat(
+        maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        num_heads=4,
+        feed_forward_dim=512,
+        num_transformer_blocks=2,
+        rngs=rngs,
+        dropout_rate=0.1,
+    )
+    
+    inputs = jnp.array([[1, 2, 3, 4, 5]])
+    
+    # Run in training mode (dropout active)
+    outputs_train = model(inputs, training=True)
+    assert outputs_train.shape == (1, 5, 1000)
+    
+    # Run in inference mode (dropout inactive)
+    outputs_eval = model(inputs, training=False)
+    assert outputs_eval.shape == (1, 5, 1000)
+
+
+def test_aether_yat_performer_training_vs_inference():
+    """Test AetherYatPerformer in training vs inference mode."""
+    from aether.models import AetherYatPerformer
+    
+    rngs = nnx.Rngs(42)
+    model = AetherYatPerformer(
+        maxlen=128,
+        vocab_size=1000,
+        embed_dim=256,
+        num_heads=4,
+        feed_forward_dim=512,
+        num_transformer_blocks=2,
+        rngs=rngs,
+        dropout_rate=0.1,
+    )
+    
+    inputs = jnp.array([[1, 2, 3, 4, 5]])
+    
+    # Run in training mode (dropout active)
+    outputs_train = model(inputs, training=True)
+    assert outputs_train.shape == (1, 5, 1000)
+    
+    # Run in inference mode (dropout inactive)
+    outputs_eval = model(inputs, training=False)
+    assert outputs_eval.shape == (1, 5, 1000)
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
