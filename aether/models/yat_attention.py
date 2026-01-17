@@ -16,7 +16,7 @@ from typing import Dict, Any, Optional
 
 from .base import BaseModel
 from .embeddings import TokenAndPositionEmbedding
-
+from nmn.nnx.nmn import YatNMN
 
 # Compatibility check for nnx.List (not available in Flax < 0.11.0)
 def _create_module_list(modules):
@@ -450,36 +450,22 @@ class YatAttentionTransformerBlock(nnx.Module):
         )
         self.dropout1 = nnx.Dropout(rate=rate, rngs=rngs)
         
-        # Layer normalization
-        self.layer_norm1 = nnx.LayerNorm(
-            epsilon=1e-6,
-            num_features=embed_dim,
-            scale_init=layer_norm_scale_init,
-            bias_init=bias_init,
-            param_dtype=param_dtype,
-            rngs=rngs
-        )
-        self.layer_norm2 = nnx.LayerNorm(
-            epsilon=1e-6,
-            num_features=embed_dim,
-            scale_init=layer_norm_scale_init,
-            bias_init=bias_init,
-            param_dtype=param_dtype,
-            rngs=rngs
-        )
-        
         # Feed-forward network
-        self.linear1 = nnx.Linear(
+        self.non_linear1 = YatNMN(
             in_features=embed_dim,
-            out_features=ff_dim,
+            out_features=4 * embed_dim,
+            use_dropconnect=False,
+            use_bias=False,
+            drop_rate=0.,
             kernel_init=kernel_init,
+            alpha_init=alpha_init,
             bias_init=bias_init,
-            param_dtype=param_dtype,
             rngs=rngs
         )
-        self.linear2 = nnx.Linear(
-            in_features=ff_dim,
+        self.out_linear1 = nnx.Linear(
+            in_features=4 * embed_dim,
             out_features=embed_dim,
+            use_bias=False,
             kernel_init=kernel_init,
             bias_init=bias_init,
             param_dtype=param_dtype,
@@ -504,15 +490,14 @@ class YatAttentionTransformerBlock(nnx.Module):
         # YatAttention with residual
         attention_output = self.attn(inputs, mask=mask, deterministic=not training)
         attention_output = self.dropout1(attention_output, deterministic=not training)
-        out1 = self.layer_norm1(inputs + attention_output)
+        out1 = inputs + attention_output
         
         # Feed-forward with residual
-        ffn_output = self.linear1(out1)
-        ffn_output = nnx.relu(ffn_output)
-        ffn_output = self.linear2(ffn_output)
+        ffn_output = self.non_linear1(out1)
+        ffn_output = self.out_linear1(ffn_output)
         ffn_output = self.dropout2(ffn_output, deterministic=not training)
         
-        return self.layer_norm2(out1 + ffn_output)
+        return out1 + ffn_output
 
 
 class YatPerformerTransformerBlock(nnx.Module):
@@ -592,41 +577,29 @@ class YatPerformerTransformerBlock(nnx.Module):
         )
         self.dropout1 = nnx.Dropout(rate=rate, rngs=rngs)
         
-        # Layer normalization
-        self.layer_norm1 = nnx.LayerNorm(
-            epsilon=1e-6,
-            num_features=embed_dim,
-            scale_init=layer_norm_scale_init,
-            bias_init=bias_init,
-            param_dtype=param_dtype,
-            rngs=rngs
-        )
-        self.layer_norm2 = nnx.LayerNorm(
-            epsilon=1e-6,
-            num_features=embed_dim,
-            scale_init=layer_norm_scale_init,
-            bias_init=bias_init,
-            param_dtype=param_dtype,
-            rngs=rngs
-        )
         
         # Feed-forward network
-        self.linear1 = nnx.Linear(
+        self.non_linear1 = YatNMN(
             in_features=embed_dim,
-            out_features=ff_dim,
+            out_features=4 * embed_dim,
+            use_dropconnect=False,
+            use_bias=False,
+            drop_rate=0.,
             kernel_init=kernel_init,
+            alpha_init=alpha_init,
             bias_init=bias_init,
-            param_dtype=param_dtype,
             rngs=rngs
         )
         self.linear2 = nnx.Linear(
-            in_features=ff_dim,
+            in_features=4 * embed_dim,
             out_features=embed_dim,
+            use_bias=False,
             kernel_init=kernel_init,
             bias_init=bias_init,
             param_dtype=param_dtype,
             rngs=rngs
         )
+
         self.dropout2 = nnx.Dropout(rate=rate, rngs=rngs)
     
     def __call__(self, inputs: jnp.ndarray, training: bool = False) -> jnp.ndarray:
@@ -642,15 +615,14 @@ class YatPerformerTransformerBlock(nnx.Module):
         # YatPerformerAttention (no explicit mask - it's a global attention)
         attention_output = self.attn(inputs, deterministic=not training)
         attention_output = self.dropout1(attention_output, deterministic=not training)
-        out1 = self.layer_norm1(inputs + attention_output)
+        out1 = inputs + attention_output
         
         # Feed-forward with residual
-        ffn_output = self.linear1(out1)
-        ffn_output = nnx.relu(ffn_output)
+        ffn_output = self.non_linear1(out1)
         ffn_output = self.linear2(ffn_output)
         ffn_output = self.dropout2(ffn_output, deterministic=not training)
         
-        return self.layer_norm2(out1 + ffn_output)
+        return out1 + ffn_output
 
 
 class AetherYat(BaseModel):
