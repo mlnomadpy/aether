@@ -1,0 +1,47 @@
+{
+  "model": {
+    "name": "aether-yat-performer",
+    "architecture": "aether_yat_performer",
+    "maxlen": 1024,
+    "vocab_size": 50257,
+    "embed_dim": 768,
+    "num_heads": 12,
+    "feed_forward_dim": 3072,
+    "num_transformer_blocks": 12,
+    "dropout_rate": 0.1,
+    "yat_epsilon": 0.1,
+    "num_random_features": 256,
+    "attention_block_reuse": 1
+  },
+  "training": {
+    "batch_size": 64,
+    "precision": "bfloat16",
+    "learning_rate": 0.0003,
+    "max_tokens_to_process": 1000000000,
+    "eval_interval": 5000,
+    "eval_steps": 500,
+    "val_set_size": 10000,
+    "checkpoint_interval": 10000,
+    "optimizer": "adamw",
+    "lr_scheduler": "cosine",
+    "lr_scheduler_alpha": 0.1,
+    "lr_scheduler_warmup_steps": 1000,
+    "weight_decay": 0.01
+  },
+  "data": {
+    "dataset_name": "HuggingFaceFW/fineweb",
+    "split": "train",
+    "streaming": true,
+    "tokenizer_name": "gpt2"
+  },
+  "logging": {
+    "wandb_project": "aether-yat-performer-training",
+    "checkpoint_dir": "./aether_yat_performer_checkpoints",
+    "log_level": "INFO",
+    "log_file": null
+  },
+  "device": {
+    "mesh_shape": null,
+    "auto_detect_mesh": true
+  }
+}
