@@ -74,5 +74,74 @@ def test_get_model_config_dict():
     assert model_config["architecture"] == "linear"
 
 
+def test_config_with_yat_epsilon():
+    """Test configuration with yat_epsilon parameter."""
+    config_dict = {
+        "model": {
+            "name": "aether-yat",
+            "architecture": "aether_yat",
+            "yat_epsilon": 0.1
+        }
+    }
+    
+    config = Config.from_dict(config_dict)
+    
+    assert config.model.name == "aether-yat"
+    assert config.model.architecture == "aether_yat"
+    assert config.model.yat_epsilon == 0.1
+
+
+def test_config_with_num_random_features():
+    """Test configuration with num_random_features parameter."""
+    config_dict = {
+        "model": {
+            "name": "aether-yat-performer",
+            "architecture": "aether_yat_performer",
+            "yat_epsilon": 0.1,
+            "num_random_features": 256
+        }
+    }
+    
+    config = Config.from_dict(config_dict)
+    
+    assert config.model.name == "aether-yat-performer"
+    assert config.model.architecture == "aether_yat_performer"
+    assert config.model.yat_epsilon == 0.1
+    assert config.model.num_random_features == 256
+
+
+def test_yat_config_file_loading():
+    """Test loading actual Yat config files."""
+    import os
+    
+    # Get the path to the configs directory
+    test_dir = os.path.dirname(__file__)
+    repo_root = os.path.dirname(os.path.dirname(test_dir))
+    aether_yat_config_path = os.path.join(repo_root, "configs", "aether_yat_config.json")
+    
+    if os.path.exists(aether_yat_config_path):
+        config = Config.from_file(aether_yat_config_path)
+        assert config.model.name == "aether-yat"
+        assert config.model.architecture == "aether_yat"
+        assert config.model.yat_epsilon == 0.1
+
+
+def test_yat_performer_config_file_loading():
+    """Test loading actual Yat Performer config files."""
+    import os
+    
+    # Get the path to the configs directory
+    test_dir = os.path.dirname(__file__)
+    repo_root = os.path.dirname(os.path.dirname(test_dir))
+    aether_yat_performer_config_path = os.path.join(repo_root, "configs", "aether_yat_performer_config.json")
+    
+    if os.path.exists(aether_yat_performer_config_path):
+        config = Config.from_file(aether_yat_performer_config_path)
+        assert config.model.name == "aether-yat-performer"
+        assert config.model.architecture == "aether_yat_performer"
+        assert config.model.yat_epsilon == 0.1
+        assert config.model.num_random_features == 256
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
