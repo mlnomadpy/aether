@@ -21,6 +21,9 @@ class ModelConfig:
     dropout_rate: float = 0.1
     use_layer_norm: bool = True  # Whether to use layer normalization in linear architecture
     attention_block_reuse: int = 1  # Number of times to reuse attention blocks (1 = no reuse)
+    # Yat attention specific parameters
+    yat_epsilon: Optional[float] = None  # Epsilon for Yat attention kernel (used by aether_yat architectures)
+    num_random_features: Optional[int] = None  # Number of random features for YatPerformer kernel approximation
 
 
 @dataclass
